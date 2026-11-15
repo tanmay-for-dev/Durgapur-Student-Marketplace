@@ -1,28 +1,25 @@
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
 import Home from "./pages/home.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import Auth from "./pages/Auth.jsx";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route
-          path="/product/:id"
-          element={<ProductDetails />}
-        />
+        <Route path="/product/:id" element={<ProductDetails />} />
+        <Route path="/auth" element={<Auth />} />
         <Route
           path="*"
           element={
-            <div className="p-10 text-center">
-              <h1 className="text-3xl font-bold">
-                Page not found
-              </h1>
-              <a href="/" className="text-orange-500">
+            <div className="min-h-screen bg-[#FFF9F5] p-10 text-center">
+              <h1 className="text-3xl font-bold">Page not found</h1>
+              <Link to="/" className="mt-4 inline-block text-orange-500">
                 Return to marketplace
-              </a>
+              </Link>
             </div>
           }
         />
