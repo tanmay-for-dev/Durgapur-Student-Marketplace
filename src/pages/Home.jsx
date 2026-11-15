@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { products } from "../data/products.js";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import AuthPrompt from "../components/AuthPrompt.jsx";
 
 const categories = [
   { name: "All", icon: "✨" },
@@ -81,6 +83,20 @@ function Home() {
   const [location, setLocation] = useState("All areas");
   const [sortBy, setSortBy] = useState("newest");
   const [showNotice, setShowNotice] = useState(false);
+  const { user, loading } = useAuth();
+const [authPromptOpen, setAuthPromptOpen] = useState(false);
+
+function handleSellClick() {
+  console.log("User:", user);
+  if (loading) return;
+
+  if (!user) {
+    setAuthPromptOpen(true);
+    return;
+  }
+
+  setShowNotice(true);
+}
 
   const filteredProducts = products
     .filter((product) => {
@@ -139,7 +155,8 @@ function Home() {
             📍 Durgapur
           </span>
           <button
-            onClick={() => setShowNotice(true)}
+            onClick={handleSellClick}
+            disabled={loading}
             className="orange-button text-sm"
           >
             + Sell an item
@@ -423,6 +440,12 @@ function Home() {
           </button>
         </div>
       )}
+      <AuthPrompt
+  open={authPromptOpen}
+  onClose={() => setAuthPromptOpen(false)}
+  action="sell"
+  returnTo="/"
+/>
     </div>
   );
 }
