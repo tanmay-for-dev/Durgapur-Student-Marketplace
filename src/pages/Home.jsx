@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { products } from "../data/products.js";
+import { useEffect, useState } from "react";
+import { getListings } from "../services/listings.js";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import AuthPrompt from "../components/AuthPrompt.jsx";
@@ -14,66 +14,52 @@ const categories = [
   { name: "Others", icon: "📦" },
 ];
 
-const locations = [
-  "All areas",
-  ...new Set(products.map((product) => product.location)),
-];
-
 function ProductCard({ product }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <Link
-    to={`/product/${product.id}`}
-    className="block h-full text-inherit no-underline"
-  >
-    <article className="product-clay h-full">
-      <div className="product-image">
-        {imageFailed ? (
-          <span className="text-7xl">{product.emoji}</span>
-        ) : (
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            onError={() => setImageFailed(true)}
-          />
-        )}
-
-        <span className="condition-badge">
-          {product.condition}
-        </span>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="product-category">
-            {product.category}
-          </span>
-          <span className="text-xs text-[#A48D80]">
-            {product.posted}
-          </span>
+      to={`/product/${product.id}`}
+      className="block h-full text-inherit no-underline"
+    >
+      <article className="product-clay h-full">
+        <div className="product-image">
+          {imageFailed || !product.image ? (
+            <span className="text-7xl" role="img" aria-label="No product image">
+              📦
+            </span>
+          ) : (
+            <img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              onError={() => setImageFailed(true)}
+            />
+          )}
+          <span className="condition-badge">{product.condition}</span>
         </div>
 
-        <h3 className="mt-3 line-clamp-2 min-h-12 text-lg font-extrabold leading-snug">
-          {product.name}
-        </h3>
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="product-category">{product.category}</span>
+            <span className="text-xs text-[#A48D80]">{product.posted}</span>
+          </div>
 
-        <p className="mt-2 text-2xl font-black text-[#32231B]">
-          ₹{product.price.toLocaleString("en-IN")}
-        </p>
+          <h3 className="mt-3 line-clamp-2 min-h-12 text-lg font-extrabold leading-snug">
+            {product.name}
+          </h3>
+          <p className="mt-2 text-2xl font-black text-[#32231B]">
+            ₹{product.price.toLocaleString("en-IN")}
+          </p>
 
-        <div className="mt-4 border-t border-[#F4E7DF] pt-3">
-          <p className="text-sm font-semibold text-[#755F53]">
-            📍 {product.location}
-          </p>
-          <p className="mt-1 text-xs text-[#A48D80]">
-            {product.distance}
-          </p>
+          <div className="mt-4 border-t border-[#F4E7DF] pt-3">
+            <p className="text-sm font-semibold text-[#755F53]">
+              📍 {product.location}
+            </p>
+          </div>
         </div>
-      </div>
-        </article>
-  </Link>
+      </article>
+    </Link>
   );
 }
 
@@ -83,26 +69,55 @@ function Home() {
   const [location, setLocation] = useState("All areas");
   const [sortBy, setSortBy] = useState("newest");
   const [showNotice, setShowNotice] = useState(false);
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [listings, setListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState("");
   const { user, loading } = useAuth();
-const [authPromptOpen, setAuthPromptOpen] = useState(false);
 
-function handleSellClick() {
-  console.log("User:", user);
-  if (loading) return;
+  useEffect(() => {
+    let active = true;
 
-  if (!user) {
-    setAuthPromptOpen(true);
-    return;
+    async function loadListings() {
+      try {
+        const data = await getListings();
+        if (active) setListings(data);
+      } catch (error) {
+        if (active) {
+          setListingsError(error.message || "Couldn't load listings.");
+        }
+      } finally {
+        if (active) setListingsLoading(false);
+      }
+    }
+
+    loadListings();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function handleSellClick() {
+    if (loading) return;
+
+    if (!user) {
+      setAuthPromptOpen(true);
+      return;
+    }
+
+    setShowNotice(true);
   }
 
-  setShowNotice(true);
-}
+  const locations = [
+    "All areas",
+    ...Array.from(new Set(listings.map((product) => product.location))).sort(),
+  ];
 
-  const filteredProducts = products
+  const filteredProducts = listings
     .filter((product) => {
       const matchesCategory =
-        activeCategory === "All" ||
-        product.category === activeCategory;
+        activeCategory === "All" || product.category === activeCategory;
 
       const matchesSearch = [
         product.name,
@@ -115,15 +130,14 @@ function handleSellClick() {
         .includes(search.trim().toLowerCase());
 
       const matchesLocation =
-        location === "All areas" ||
-        product.location === location;
+        location === "All areas" || product.location === location;
 
       return matchesCategory && matchesSearch && matchesLocation;
     })
     .sort((a, b) => {
       if (sortBy === "low") return a.price - b.price;
       if (sortBy === "high") return b.price - a.price;
-      return a.ageHours - b.ageHours;
+      return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
   function resetFilters() {
@@ -135,7 +149,6 @@ function handleSellClick() {
 
   return (
     <div className="min-h-screen bg-[#FFF9F5] text-[#342720]">
-      {/* NAVBAR */}
       <header className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-6 md:px-10">
         <a href="#" className="flex items-center gap-3">
           <span className="logo-clay">↗</span>
@@ -165,7 +178,6 @@ function handleSellClick() {
       </header>
 
       <main>
-        {/* HERO SECTION */}
         <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-12 md:grid-cols-2 md:px-10 md:pt-20">
           <div>
             <span className="inline-flex rounded-full border border-[#F9D8C3] bg-white px-4 py-2 text-xs font-extrabold tracking-widest text-[#D66D39]">
@@ -232,8 +244,6 @@ function handleSellClick() {
             <div className="side-item side-item-two">🎧</div>
           </div>
         </section>
-
-        {/* EXPLORE MARKETPLACE */}
         <section
           id="explore"
           className="mx-auto max-w-7xl scroll-mt-8 px-5 pb-24 md:px-10"
@@ -251,7 +261,6 @@ function handleSellClick() {
           </div>
 
           <div className="grid gap-7 lg:grid-cols-[235px_minmax(0,1fr)]">
-            {/* DESKTOP CATEGORY SIDEBAR */}
             <aside className="hidden lg:block">
               <div className="sidebar-clay sticky top-5 p-4">
                 <h3 className="mb-4 px-3 text-sm font-black uppercase tracking-wider text-[#9C7963]">
@@ -262,8 +271,8 @@ function handleSellClick() {
                   {categories.map((category) => {
                     const count =
                       category.name === "All"
-                        ? products.length
-                        : products.filter(
+                        ? listings.length
+                        : listings.filter(
                             (p) => p.category === category.name
                           ).length;
 
@@ -297,10 +306,7 @@ function handleSellClick() {
                 </div>
               </div>
             </aside>
-
-            {/* LISTING AREA */}
             <div className="min-w-0">
-              {/* LARGE SEARCH BOX */}
               <div className="search-clay flex items-center gap-3 px-5 py-4">
                 <svg
                   width="24"
@@ -334,8 +340,6 @@ function handleSellClick() {
                   </button>
                 )}
               </div>
-
-              {/* MOBILE CATEGORIES */}
               <div className="mt-5 flex gap-2 overflow-x-auto pb-2 lg:hidden">
                 {categories.map((category) => (
                   <button
@@ -350,16 +354,17 @@ function handleSellClick() {
                   </button>
                 ))}
               </div>
-
-              {/* FILTERS */}
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-black">
                     Fresh finds near you
                   </h3>
                   <p className="mt-1 text-sm text-[#9B8172]">
-                    {filteredProducts.length}{" "}
-                    {filteredProducts.length === 1 ? "listing" : "listings"} found
+                    {listingsLoading
+                      ? "Loading listings..."
+                      : listingsError
+                      ? "Listings unavailable"
+                      : `${filteredProducts.length} ${filteredProducts.length === 1 ? "listing" : "listings"} found`}
                   </p>
                 </div>
 
@@ -390,8 +395,22 @@ function handleSellClick() {
                 </div>
               </div>
 
-              {/* PRODUCT GRID */}
-              {filteredProducts.length > 0 ? (
+              {listingsLoading ? (
+                <div className="mt-6 rounded-[28px] bg-white p-12 text-center shadow-sm" role="status">
+                  <div className="text-4xl">📦</div>
+                  <h3 className="mt-4 text-xl font-black">Loading local finds...</h3>
+                  <p className="mt-2 text-[#9B8172]">Checking what's available around Durgapur.</p>
+                </div>
+              ) : listingsError ? (
+                <div className="mt-6 rounded-[28px] bg-white p-12 text-center shadow-sm" role="alert">
+                  <div className="text-4xl">⚠️</div>
+                  <h3 className="mt-4 text-xl font-black">Couldn't load listings</h3>
+                  <p className="mt-2 text-[#9B8172]">{listingsError}</p>
+                  <button onClick={() => window.location.reload()} className="orange-button mt-6">
+                    Try again
+                  </button>
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {filteredProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
@@ -399,38 +418,32 @@ function handleSellClick() {
                 </div>
               ) : (
                 <div className="mt-6 rounded-[28px] bg-white p-12 text-center shadow-sm">
-                  <div className="text-5xl">🔎</div>
+                  <div className="text-5xl">{listings.length === 0 ? "📦" : "🔎"}</div>
                   <h3 className="mt-4 text-xl font-black">
-                    No listings found
+                    {listings.length === 0 ? "No listings yet" : "No listings found"}
                   </h3>
                   <p className="mt-2 text-[#9B8172]">
-                    Try another search or change your filters.
+                    {listings.length === 0
+                      ? "The marketplace is ready for its first local listing."
+                      : "Try another search or change your filters."}
                   </p>
-                  <button
-                    onClick={resetFilters}
-                    className="orange-button mt-6"
-                  >
-                    Reset filters
-                  </button>
+                  {listings.length > 0 && (
+                    <button onClick={resetFilters} className="orange-button mt-6">
+                      Reset filters
+                    </button>
+                  )}
                 </div>
               )}
-
-              <p className="mt-7 text-center text-xs text-[#AC968A]">
-                Sample listings for UI testing. Locations, distances,
-                and posting times are illustrative.
-              </p>
             </div>
           </div>
         </section>
       </main>
-
-      {/* TEMPORARY SELL BUTTON MESSAGE */}
       {showNotice && (
         <div
           role="status"
           className="fixed bottom-6 left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-[#342720] p-4 text-sm text-white shadow-xl"
         >
-          <span>Seller registration is coming in our next phase!</span>
+          <span>Product posting is coming soon!</span>
           <button
             onClick={() => setShowNotice(false)}
             aria-label="Dismiss notification"
@@ -441,11 +454,11 @@ function handleSellClick() {
         </div>
       )}
       <AuthPrompt
-  open={authPromptOpen}
-  onClose={() => setAuthPromptOpen(false)}
-  action="sell"
-  returnTo="/"
-/>
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        action="sell"
+        returnTo="/"
+      />
     </div>
   );
 }
