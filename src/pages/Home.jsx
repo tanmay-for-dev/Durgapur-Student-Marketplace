@@ -1,5 +1,7 @@
 
 import { useState } from "react";
+import { products } from "../data/products.js";
+import { Link } from "react-router-dom";
 
 const categories = [
   { name: "All", icon: "✨" },
@@ -8,81 +10,6 @@ const categories = [
   { name: "Furniture", icon: "🪑" },
   { name: "Cycles", icon: "🚲" },
   { name: "Others", icon: "📦" },
-];
-
-// Temporary sample data.
-// Later, these listings will come from Supabase.
-const products = [
-  {
-    id: 1,
-    name: "Engineering Books Bundle",
-    category: "Books",
-    price: 450,
-    location: "City Centre",
-    distance: "650 m away",
-    posted: "2 days ago",
-    ageHours: 48,
-    condition: "Good",
-    emoji: "📚",
-    image:
-      "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 2,
-    name: "Wireless Bluetooth Headphones",
-    category: "Electronics",
-    price: 1800,
-    location: "Benachity",
-    distance: "2.4 km away",
-    posted: "5 hours ago",
-    ageHours: 5,
-    condition: "Like new",
-    emoji: "🎧",
-    image:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 3,
-    name: "Wooden Study Chair",
-    category: "Furniture",
-    price: 900,
-    location: "Bidhannagar",
-    distance: "3.2 km away",
-    posted: "1 day ago",
-    ageHours: 24,
-    condition: "Good",
-    emoji: "🪑",
-    image:
-      "https://images.unsplash.com/photo-1503602642458-232111445657?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 4,
-    name: "Hybrid Bicycle",
-    category: "Cycles",
-    price: 3200,
-    location: "Muchipara",
-    distance: "4.5 km away",
-    posted: "3 days ago",
-    ageHours: 72,
-    condition: "Used",
-    emoji: "🚲",
-    image:
-      "https://images.unsplash.com/photo-1541625602330-2277b4c461de?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 5,
-    name: "Minimal Table Lamp",
-    category: "Others",
-    price: 350,
-    location: "A-Zone",
-    distance: "1.8 km away",
-    posted: "4 hours ago",
-    ageHours: 4,
-    condition: "Like new",
-    emoji: "💡",
-    image:
-      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800&auto=format&fit=crop",
-  },
 ];
 
 const locations = [
@@ -94,7 +21,11 @@ function ProductCard({ product }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
-    <article className="product-clay">
+    <Link
+    to={`/product/${product.id}`}
+    className="block h-full text-inherit no-underline"
+  >
+    <article className="product-clay h-full">
       <div className="product-image">
         {imageFailed ? (
           <span className="text-7xl">{product.emoji}</span>
@@ -139,7 +70,8 @@ function ProductCard({ product }) {
           </p>
         </div>
       </div>
-    </article>
+        </article>
+  </Link>
   );
 }
 
