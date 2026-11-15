@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { getListings } from "../services/listings.js";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import AuthPrompt from "../components/AuthPrompt.jsx";
 
@@ -68,12 +67,12 @@ function Home() {
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("All areas");
   const [sortBy, setSortBy] = useState("newest");
-  const [showNotice, setShowNotice] = useState(false);
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const [listings, setListings] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState("");
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
@@ -106,7 +105,7 @@ function Home() {
       return;
     }
 
-    setShowNotice(true);
+    navigate("/sell");
   }
 
   const locations = [
@@ -438,26 +437,11 @@ function Home() {
           </div>
         </section>
       </main>
-      {showNotice && (
-        <div
-          role="status"
-          className="fixed bottom-6 left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-[#342720] p-4 text-sm text-white shadow-xl"
-        >
-          <span>Product posting is coming soon!</span>
-          <button
-            onClick={() => setShowNotice(false)}
-            aria-label="Dismiss notification"
-            className="text-xl"
-          >
-            ×
-          </button>
-        </div>
-      )}
       <AuthPrompt
         open={authPromptOpen}
         onClose={() => setAuthPromptOpen(false)}
         action="sell"
-        returnTo="/"
+        returnTo="/sell"
       />
     </div>
   );
