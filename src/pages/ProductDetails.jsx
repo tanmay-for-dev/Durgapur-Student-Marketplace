@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import AuthPrompt from "../components/AuthPrompt.jsx";
+import ListingManagement, { EmailContact } from "../components/ListingManagement.jsx";
 import { supabase } from "../lib/supabase.js";
 import { getListingById, getListings } from "../services/listings.js";
 
@@ -397,7 +398,15 @@ export default function ProductDetails() {
                   {product.description || "The seller hasn't added a description yet."}
                 </p>
               </div>
-
+              <ListingManagement
+  listingId={product.id}
+  status={product.status}
+  onSold={() =>
+    setProduct((current) =>
+      current ? { ...current, status: "sold" } : current
+    )
+  }
+/>
               <div className="mt-8">
                 <div className="tab-row">
                   <button
@@ -455,9 +464,13 @@ export default function ProductDetails() {
                         )}
                       </div>
 
-                      {!whatsappUrl && !phoneUrl && (
-                        <p className="text-sm text-[#7D675B]">Contact details are unavailable for this listing.</p>
-                      )}
+              
+
+                      <EmailContact
+  listingId={product.id}
+  productName={product.name}
+  showFallback={!whatsappUrl && !phoneUrl}
+/>
                     </div>
                   ) : (
                     <div className="space-y-4">

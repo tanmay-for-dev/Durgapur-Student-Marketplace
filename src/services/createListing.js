@@ -18,36 +18,52 @@ export async function getLocalities() {
   return data ?? [];
 }
 
-export async function publishListing({ details, photos, meetupAreaIds }) {
+export async function submitListingForReview({ details, photos, meetupAreaIds }) {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user) {
-    throw new Error("Please sign in again to publish your listing.");
+    throw new Error("Please sign in again to submit your listing.");
   }
 
   if (photos.length < 1 || photos.length > 8) {
     throw new Error("Choose between 1 and 8 photos.");
   }
 
-  if (
-    photos.some(
-      (file) => !ACCEPTED_TYPES[file.type] || file.size > MAX_FILE_SIZE
-    )
-  ) {
-    throw new Error(
-      "Photos must be JPG, PNG, or WebP and no larger than 5 MB each."
-    );
+  if (photos.some((file) => !ACCEPTED_TYPES[file.type] || file.size > MAX_FILE_SIZE)) {
+    throw new Error("Photos must be JPG, PNG, or WebP and no larger than 5 MB each.");
+  }
+
+  const whatsapp = details.whatsapp.trim();
+  const phone = details.phone.trim();
+  const contactEmail = details.contactEmail.trim();
+
+  if (!whatsapp && !phone && !contactEmail) {
+    throw new Error("Add at least one contact method.");
+  }
+
+  if (contactEmail && (contactEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
+    throw new Error("Enter a valid contact email address.");
+  }
+
+  const selectedAreas = details.meetupPolicy === "selected_areas"
+    ? meetupAreaIds.map(Number)
+    : [];
+
+  if (details.meetupPolicy === "selected_areas" && !selectedAreas.length) {
+    throw new Error("Choose at least one meetup area.");
   }
 
   const userId = authData.user.id;
-  let listingId = null;
+  let submissionId = null;
   const uploadedPaths = [];
 
   try {
-    const { data: listing, error: listingError } = await supabase
-      .from("listings")
+    const { data: submission, error: submissionError } = await supabase
+      .from("listing_submissions")
       .insert({
         seller_id: userId,
+        kind: "new",
+        status: "draft",
         title: details.title.trim(),
         description: details.description.trim(),
         price: Number(details.price),
@@ -56,37 +72,37 @@ export async function publishListing({ details, photos, meetupAreaIds }) {
         locality_id: Number(details.localityId),
         meetup_policy: details.meetupPolicy,
         travel_note: details.travelNote.trim() || null,
-        whatsapp_number: details.whatsapp.trim() || null,
-        call_number: details.phone.trim() || null,
-        status: "draft",
+        meetup_area_ids: selectedAreas,
+        whatsapp_number: whatsapp || null,
+        call_number: phone || null,
+        contact_email: contactEmail || null,
       })
       .select("id")
       .single();
 
-    if (listingError) throw listingError;
-    listingId = listing.id;
+    if (submissionError) throw submissionError;
+    submissionId = submission.id;
 
     for (const photo of photos) {
       const extension = ACCEPTED_TYPES[photo.type];
-      const path = `${userId}/${listingId}/${crypto.randomUUID()}.${extension}`;
+      const path = `${userId}/${submissionId}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("listing-images")
+        .from("review-images")
         .upload(path, photo, {
           contentType: photo.type,
           upsert: false,
         });
 
       if (uploadError) throw uploadError;
-
       uploadedPaths.push(path);
     }
 
     const { error: imagesError } = await supabase
-      .from("listing_images")
+      .from("submission_images")
       .insert(
         uploadedPaths.map((storage_path, position) => ({
-          listing_id: listingId,
+          submission_id: submissionId,
           storage_path,
           position,
         }))
@@ -94,42 +110,35 @@ export async function publishListing({ details, photos, meetupAreaIds }) {
 
     if (imagesError) throw imagesError;
 
-    if (details.meetupPolicy === "selected_areas") {
-      const { error: meetupError } = await supabase
-        .from("listing_meetup_areas")
-        .insert(
-          meetupAreaIds.map((locality_id) => ({
-            listing_id: listingId,
-            locality_id: Number(locality_id),
-          }))
-        );
+    const { error: submitError } = await supabase.rpc("submit_listing_for_review", {
+      p_submission_id: submissionId,
+    });
 
-      if (meetupError) throw meetupError;
-    }
+    if (submitError) throw submitError;
 
-    const { data: published, error: publishError } = await supabase
-      .from("listings")
-      .update({ status: "available" })
-      .eq("id", listingId)
-      .eq("seller_id", userId)
-      .select("id")
-      .single();
-
-    if (publishError) throw publishError;
-
-    return published.id;
+    return submissionId;
   } catch (error) {
-    if (listingId) {
-      const { error: removalError } = uploadedPaths.length
-        ? await supabase.storage.from("listing-images").remove(uploadedPaths)
-        : { error: null };
+    if (submissionId) {
+      const { data: stored } = await supabase
+        .from("listing_submissions")
+        .select("status")
+        .eq("id", submissionId)
+        .maybeSingle();
 
-      if (!removalError) {
+      if (stored?.status === "pending_review") {
+        return submissionId;
+      }
+
+      if (stored?.status === "draft") {
+        if (uploadedPaths.length) {
+          await supabase.storage.from("review-images").remove(uploadedPaths);
+        }
+
         await supabase
-          .from("listings")
+          .from("listing_submissions")
           .delete()
-          .eq("id", listingId)
-          .eq("seller_id", userId);
+          .eq("id", submissionId)
+          .eq("status", "draft");
       }
     }
 

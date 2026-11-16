@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import ReviewTab from "../components/ReviewTab.jsx";
 
 const categoryIcons = {
   Books: "📚",
@@ -83,6 +84,8 @@ export default function Profile() {
   const [tab, setTab] = useState("listings");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [role, setRole] = useState("member");
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (!username && authLoading) return;
@@ -97,6 +100,8 @@ export default function Profile() {
       if (!username && !user) {
         setProfile(null);
         setListings([]);
+        setRole("member");
+        setPendingCount(0);
         setLoading(false);
         return;
       }
@@ -124,11 +129,13 @@ export default function Profile() {
           if (!cancelled) {
             setProfile(null);
             setListings([]);
+            setRole("member");
+            setPendingCount(0);
           }
           return;
         }
 
-        const isOwner = user?.id === account.id;
+        const isProfileOwner = user?.id === account.id;
 
         const { data, error: listingsError } = await supabase
           .from("listings")
@@ -144,7 +151,7 @@ export default function Profile() {
           .eq("seller_id", account.id)
           .in(
             "status",
-            isOwner
+            isProfileOwner
               ? ["available", "reserved", "sold", "draft"]
               : ["available", "reserved", "sold"]
           )
@@ -152,9 +159,55 @@ export default function Profile() {
 
         if (listingsError) throw listingsError;
 
+        const [
+          { data: ownerRole, error: ownerError },
+          { data: modRole, error: modError },
+        ] = await Promise.all([
+          supabase
+            .from("platform_owners")
+            .select("user_id")
+            .eq("user_id", account.id)
+            .maybeSingle(),
+          supabase
+            .from("moderators")
+            .select("user_id")
+            .eq("user_id", account.id)
+            .maybeSingle(),
+        ]);
+
+        if (ownerError || modError) {
+          throw ownerError || modError;
+        }
+
+        const nextRole = ownerRole
+          ? "owner"
+          : modRole
+            ? "moderator"
+            : "member";
+
+        let nextPendingCount = 0;
+
+        if (isProfileOwner && nextRole !== "member") {
+          let countQuery = supabase
+            .from("listing_submissions")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "pending_review");
+
+          if (nextRole === "moderator") {
+            countQuery = countQuery.neq("seller_id", user.id);
+          }
+
+          const { count, error: countError } = await countQuery;
+
+          if (countError) throw countError;
+          nextPendingCount = count ?? 0;
+        }
+
         if (!cancelled) {
           setProfile(account);
           setListings(data ?? []);
+          setRole(nextRole);
+          setPendingCount(nextPendingCount);
         }
       } catch (err) {
         if (!cancelled) setError(err.message);
@@ -217,19 +270,23 @@ export default function Profile() {
     );
   }
 
-  const isOwner = user?.id === profile.id;
+  const isProfileOwner = user?.id === profile.id;
 
   const available = listings.filter(
     (item) => item.status === "available" || item.status === "reserved"
   );
+
   const sold = listings.filter((item) => item.status === "sold");
   const drafts = listings.filter((item) => item.status === "draft");
 
   const tabs = [
     { id: "listings", label: "Listings", count: available.length },
     { id: "sold", label: "Sold", count: sold.length },
-    ...(isOwner
+    ...(isProfileOwner
       ? [{ id: "drafts", label: "Drafts", count: drafts.length }]
+      : []),
+    ...(isProfileOwner && role !== "member"
+      ? [{ id: "reviews", label: "Reviews", count: pendingCount }]
       : []),
   ];
 
@@ -266,7 +323,7 @@ export default function Profile() {
 
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-extrabold uppercase tracking-widest text-[#BF794F]">
-                  {isOwner ? "My storefront" : "DGP Finds member"}
+                  {isProfileOwner ? "My storefront" : "DGP Finds member"}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
@@ -277,12 +334,20 @@ export default function Profile() {
                   @{profile.username}
                 </p>
 
+                {role !== "member" && (
+                  <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#342720] px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#FFD0A4]">
+                    {role === "owner"
+                      ? "♛ DGP FINDS OWNER"
+                      : "✦ DGP FINDS MOD"}
+                  </span>
+                )}
+
                 <p className="mt-2 text-sm text-[#8B6854]">
                   📍 {profile.locality?.name ?? "Durgapur"}
                 </p>
               </div>
 
-              {isOwner && (
+              {isProfileOwner && (
                 <Link
                   to="/profile/edit"
                   className="self-start rounded-2xl border border-white bg-white px-5 py-3 text-sm font-extrabold text-[#986043] no-underline shadow-[4px_6px_15px_#E4B99F]"
@@ -314,7 +379,7 @@ export default function Profile() {
               </span>
             </div>
 
-            {isOwner && (
+            {isProfileOwner && (
               <Link
                 to="/sell"
                 className="ml-auto text-sm font-extrabold text-[#E8793D] no-underline"
@@ -326,13 +391,13 @@ export default function Profile() {
         </section>
 
         <section className="mt-10">
-          <div className="flex gap-6 border-b border-[#EEDBCF]">
+          <div className="flex gap-6 overflow-x-auto whitespace-nowrap border-b border-[#EEDBCF]">
             {tabs.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setTab(item.id)}
-                className={`border-b-[3px] px-2 pb-4 text-sm font-extrabold transition ${
+                className={`shrink-0 border-b-[3px] px-2 pb-4 text-sm font-extrabold transition ${
                   tab === item.id
                     ? "border-[#F4773D] text-[#C96836]"
                     : "border-transparent text-[#9B8274] hover:text-[#C96836]"
@@ -346,7 +411,13 @@ export default function Profile() {
             ))}
           </div>
 
-          {displayedListings.length ? (
+          {tab === "reviews" && isProfileOwner && role !== "member" ? (
+            <ReviewTab
+              userId={user.id}
+              isPlatformOwner={role === "owner"}
+              onCountChange={setPendingCount}
+            />
+          ) : displayedListings.length ? (
             <div className="mt-7 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
               {displayedListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
@@ -367,12 +438,12 @@ export default function Profile() {
               </h2>
 
               <p className="mt-2 text-sm text-[#957F72]">
-                {isOwner
+                {isProfileOwner
                   ? "Your items will appear here as you list them."
                   : "This member hasn't posted anything in this section."}
               </p>
 
-              {isOwner && tab === "listings" && (
+              {isProfileOwner && tab === "listings" && (
                 <Link
                   to="/sell"
                   className="orange-button mt-6 inline-flex"
