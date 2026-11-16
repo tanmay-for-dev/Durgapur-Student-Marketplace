@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ProfileShortcut from "../components/ProfileShortcut.jsx";
 import { getListings } from "../services/listings.js";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -166,6 +167,9 @@ function Home() {
           <span className="hidden rounded-full bg-[#FFF0E5] px-4 py-3 text-sm font-semibold text-[#A65B36] sm:block">
             📍 Durgapur
           </span>
+
+          <ProfileShortcut/>
+
           <button
             onClick={handleSellClick}
             disabled={loading}

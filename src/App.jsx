@@ -6,6 +6,8 @@ import Home from "./pages/home.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
 import Auth from "./pages/Auth.jsx";
 import Sell from "./pages/Sell.jsx";
+import Profile from "./pages/Profile.jsx";
+import EditProfile from "./pages/EditProfile.jsx";
 
 function App() {
   return (
@@ -16,6 +18,9 @@ function App() {
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/sell" element={<Sell />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/u/:username" element={<Profile />} />  
           <Route
             path="*"
             element={

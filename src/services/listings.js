@@ -15,7 +15,7 @@ const listingFields = `
   meetup_policy,
   travel_note,
   locality:localities!listings_locality_id_fkey(name),
-  seller:profiles!listings_seller_id_fkey(username, display_name),
+  seller:profiles!listings_seller_id_fkey(username, display_name, avatar_path),
   images:listing_images(storage_path, position)
 `;
 
@@ -58,6 +58,11 @@ function normalizeListing(listing) {
     createdAt: listing.created_at,
     username: listing.seller?.username ?? "Member",
     sellerName: listing.seller?.display_name ?? "DGP Finds Member",
+    sellerAvatar: listing.seller?.avatar_path
+  ? supabase.storage
+      .from("avatars")
+      .getPublicUrl(listing.seller.avatar_path).data.publicUrl
+  : null,
     image: images[0] ?? null,
     images,
     whatsapp: listing.whatsapp_number,

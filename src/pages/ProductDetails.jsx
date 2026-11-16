@@ -338,12 +338,38 @@ export default function ProductDetails() {
                 <p className="text-4xl font-black tracking-tight text-[#F4773D] md:text-5xl">
                   ₹{product.price.toLocaleString("en-IN")}
                 </p>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-[#7B6356]">
-                    by <span className="font-black text-[#342720]">@{product.username}</span>
-                  </p>
-                  <p className="mt-1 text-xs text-[#A48D80]">{product.posted}</p>
-                </div>
+                
+<div className="flex items-center gap-3">
+  <Link
+    to={`/u/${product.username}`}
+    aria-label={`View ${product.username}'s profile`}
+    className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#F4C6A9] bg-[#FFE6D4] text-lg font-black text-[#D9733D] transition hover:scale-105"
+  >
+    {product.sellerAvatar ? (
+      <img
+        src={product.sellerAvatar}
+        alt=""
+        className="h-full w-full object-cover"
+      />
+    ) : (
+      (product.sellerName || "D").charAt(0).toUpperCase()
+    )}
+  </Link>
+
+  <div className="text-right">
+    <p className="text-xs font-semibold text-[#9D8579]">
+      Listed by
+    </p>
+
+    <Link
+      to={`/u/${product.username}`}
+      className="mt-1 block text-sm font-black text-[#342720] no-underline transition hover:text-[#F4773D]"
+    >
+      @{product.username}
+    </Link>
+  </div>
+</div>
+
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
