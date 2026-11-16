@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ReviewTab from "../components/ReviewTab.jsx";
+import SubmissionTracker from "../components/SubmissionTracker.jsx";
 
 const categoryIcons = {
   Books: "📚",
@@ -86,6 +87,7 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [role, setRole] = useState("member");
   const [pendingCount, setPendingCount] = useState(0);
+  const [submissionCount, setSubmissionCount] = useState(0);
 
   useEffect(() => {
     if (!username && authLoading) return;
@@ -203,12 +205,29 @@ export default function Profile() {
           nextPendingCount = count ?? 0;
         }
 
-        if (!cancelled) {
-          setProfile(account);
-          setListings(data ?? []);
-          setRole(nextRole);
-          setPendingCount(nextPendingCount);
-        }
+       
+let nextSubmissionCount = 0;
+
+if (isProfileOwner) {
+  const { count, error: submissionError } = await supabase
+    .from("listing_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("seller_id", account.id)
+    .in("status", ["draft", "pending_review", "rejected"]);
+
+  if (submissionError) throw submissionError;
+
+  nextSubmissionCount = count ?? 0;
+}
+
+if (!cancelled) {
+  setProfile(account);
+  setListings(data ?? []);
+  setRole(nextRole);
+  setPendingCount(nextPendingCount);
+  setSubmissionCount(nextSubmissionCount);
+}
+
       } catch (err) {
         if (!cancelled) setError(err.message);
       } finally {
@@ -283,7 +302,7 @@ export default function Profile() {
     { id: "listings", label: "Listings", count: available.length },
     { id: "sold", label: "Sold", count: sold.length },
     ...(isProfileOwner
-      ? [{ id: "drafts", label: "Drafts", count: drafts.length }]
+      ? [{ id: "drafts", label: "Drafts", count: drafts.length + submissionCount }]
       : []),
     ...(isProfileOwner && role !== "member"
       ? [{ id: "reviews", label: "Reviews", count: pendingCount }]
@@ -411,7 +430,29 @@ export default function Profile() {
             ))}
           </div>
 
-          {tab === "reviews" && isProfileOwner && role !== "member" ? (
+          
+{tab === "drafts" && isProfileOwner ? (
+  <>
+    <SubmissionTracker
+      userId={user.id}
+      onCountChange={setSubmissionCount}
+    />
+
+    {drafts.length > 0 && (
+      <div className="mt-10">
+        <h2 className="text-xl font-black text-[#342720]">
+          Older saved listing drafts
+        </h2>
+        <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+          {drafts.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      </div>
+    )}
+  </>
+) : tab === "reviews" && isProfileOwner && role !== "member" ? (
+
             <ReviewTab
               userId={user.id}
               isPlatformOwner={role === "owner"}
