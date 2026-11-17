@@ -8,6 +8,7 @@ import Auth from "./pages/Auth.jsx";
 import Sell from "./pages/Sell.jsx";
 import Profile from "./pages/Profile.jsx";
 import EditProfile from "./pages/EditProfile.jsx";
+import Marketplace from "./pages/Marketplace.jsx";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/sell" element={<Sell />} />

@@ -97,3 +97,129 @@ export async function getListingById(id) {
 
   return data ? normalizeListing(data) : null;
 }
+
+export async function getHomepageListings(limit = 8) {
+  const safeLimit = Math.min(8, Math.max(1, Math.floor(Number(limit) || 8)));
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(listingFields)
+    .eq("status", "available")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(safeLimit);
+
+  if (error) throw error;
+  return (data ?? []).map(normalizeListing);
+}
+
+export async function getMarketplaceLocalities() {
+  const { data, error } = await supabase
+    .from("localities")
+    .select("id, name, slug")
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getMarketplaceListings({
+  search = "",
+  category = "All",
+  localityIds = [],
+  conditions = [],
+  minPrice = null,
+  maxPrice = null,
+  sort = "newest",
+  availableOnly = true,
+  page = 1,
+  pageSize = 12,
+} = {}) {
+  const safePage = Math.max(1, Math.floor(Number(page) || 1));
+  const safePageSize = Math.min(24, Math.max(1, Math.floor(Number(pageSize) || 12)));
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  let query = supabase
+    .from("listings")
+    .select(listingFields, { count: "exact" });
+
+  query = availableOnly
+    ? query.eq("status", "available")
+    : query.in("status", ["available", "reserved", "sold"]);
+
+  const term = String(search ?? "").trim();
+
+  if (term) {
+    query = query.ilike("title", `%${term}%`);
+  }
+
+  if (category && !["All", "Everything", "All finds"].includes(category)) {
+    query = query.eq("category", category);
+  }
+
+  if (localityIds.length) {
+    const ids = localityIds.map(Number);
+
+    if (ids.some((id) => !Number.isSafeInteger(id) || id < 1)) {
+      throw new Error("Invalid locality filter.");
+    }
+
+    query = query.in("locality_id", ids);
+  }
+
+  if (conditions.length) {
+    query = query.in("condition", conditions);
+  }
+
+  if (minPrice !== null && minPrice !== "") {
+    const minimum = Number(minPrice);
+
+    if (!Number.isFinite(minimum) || minimum < 0) {
+      throw new Error("Invalid minimum price.");
+    }
+
+    query = query.gte("price", minimum);
+  }
+
+  if (maxPrice !== null && maxPrice !== "") {
+    const maximum = Number(maxPrice);
+
+    if (!Number.isFinite(maximum) || maximum < 0) {
+      throw new Error("Invalid maximum price.");
+    }
+
+    query = query.lte("price", maximum);
+  }
+
+  if (sort === "price_low") {
+    query = query.order("price", { ascending: true });
+  } else if (sort === "price_high") {
+    query = query.order("price", { ascending: false });
+  } else if (sort === "oldest") {
+    query = query.order("created_at", { ascending: true });
+  }
+
+  if (sort !== "oldest") {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  query = query
+    .order("id", { ascending: false })
+    .range(from, to);
+
+  const { data, count, error } = await query;
+
+  if (error) throw error;
+
+  const items = (data ?? []).map(normalizeListing);
+  const totalCount = count ?? 0;
+
+  return {
+    items,
+    totalCount,
+    page: safePage,
+    pageSize: safePageSize,
+    hasMore: from + items.length < totalCount,
+  };
+}
