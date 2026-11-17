@@ -1,454 +1,95 @@
 import { useEffect, useState } from "react";
-import ProfileShortcut from "../components/ProfileShortcut.jsx";
-import { getListings } from "../services/listings.js";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import AuthPrompt from "../components/AuthPrompt.jsx";
+import ProfileShortcut from "../components/ProfileShortcut.jsx";
+import HomeHeroV2 from "../components/HomeHeroV2.jsx";
+import HomePreviewV2 from "../components/HomePreviewV2.jsx";
+import { getHomepageListings } from "../services/listings.js";
 
-const categories = [
-  { name: "All", icon: "✨" },
-  { name: "Books", icon: "📚" },
-  { name: "Electronics", icon: "🎧" },
-  { name: "Furniture", icon: "🪑" },
-  { name: "Cycles", icon: "🚲" },
-  { name: "Others", icon: "📦" },
-];
-
-function ProductCard({ product }) {
-  const [imageFailed, setImageFailed] = useState(false);
-
-  return (
-    <Link
-      to={`/product/${product.id}`}
-      className="block h-full text-inherit no-underline"
-    >
-      <article className="product-clay h-full">
-        <div className="product-image">
-          {imageFailed || !product.image ? (
-            <span className="text-7xl" role="img" aria-label="No product image">
-              📦
-            </span>
-          ) : (
-            <img
-              src={product.image}
-              alt={product.name}
-              loading="lazy"
-              onError={() => setImageFailed(true)}
-            />
-          )}
-          <span className="condition-badge">{product.condition}</span>
-        </div>
-
-        <div className="p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="product-category">{product.category}</span>
-            <span className="text-xs text-[#A48D80]">{product.posted}</span>
-          </div>
-
-          <h3 className="mt-3 line-clamp-2 min-h-12 text-lg font-extrabold leading-snug">
-            {product.name}
-          </h3>
-          <p className="mt-2 text-2xl font-black text-[#32231B]">
-            ₹{product.price.toLocaleString("en-IN")}
-          </p>
-
-          <div className="mt-4 border-t border-[#F4E7DF] pt-3">
-            <p className="text-sm font-semibold text-[#755F53]">
-              📍 {product.location}
-            </p>
-          </div>
-        </div>
-      </article>
-    </Link>
-  );
-}
-
-function Home() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("All areas");
-  const [sortBy, setSortBy] = useState("newest");
-  const [authPromptOpen, setAuthPromptOpen] = useState(false);
-  const [listings, setListings] = useState([]);
-  const [listingsLoading, setListingsLoading] = useState(true);
-  const [listingsError, setListingsError] = useState("");
+export default function Home() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [featured, setFeatured] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-
-    async function loadListings() {
-      try {
-        const data = await getListings();
-        if (active) setListings(data);
-      } catch (error) {
-        if (active) {
-          setListingsError(error.message || "Couldn't load listings.");
-        }
-      } finally {
-        if (active) setListingsLoading(false);
-      }
-    }
-
-    loadListings();
-
-    return () => {
-      active = false;
-    };
+    getHomepageListings(3)
+      .then((products) => { if (active) setFeatured(products); })
+      .catch(() => { if (active) setFeatured([]); })
+      .finally(() => { if (active) setFeaturedLoading(false); });
+    return () => { active = false; };
   }, []);
 
   function handleSellClick() {
     if (loading) return;
-
     if (!user) {
       setAuthPromptOpen(true);
       return;
     }
-
     navigate("/sell");
   }
 
-  const locations = [
-    "All areas",
-    ...Array.from(new Set(listings.map((product) => product.location))).sort(),
-  ];
-
-  const filteredProducts = listings
-    .filter((product) => {
-      const matchesCategory =
-        activeCategory === "All" || product.category === activeCategory;
-
-      const matchesSearch = [
-        product.name,
-        product.category,
-        product.location,
-        product.condition,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.trim().toLowerCase());
-
-      const matchesLocation =
-        location === "All areas" || product.location === location;
-
-      return matchesCategory && matchesSearch && matchesLocation;
-    })
-    .sort((a, b) => {
-      if (sortBy === "low") return a.price - b.price;
-      if (sortBy === "high") return b.price - a.price;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-
-  function resetFilters() {
-    setActiveCategory("All");
-    setSearch("");
-    setLocation("All areas");
-    setSortBy("newest");
-  }
-
   return (
-    <div className="min-h-screen bg-[#FFF9F5] text-[#342720]">
-      <header className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-6 md:px-10">
-        <a href="#" className="flex items-center gap-3">
-          <span className="logo-clay">↗</span>
-          <span className="text-2xl font-black tracking-tight">
-            dgp<span className="text-[#F4773D]">finds.</span>
-          </span>
-        </a>
-
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-[#735C50] md:flex">
-          <a href="#explore" className="hover:text-[#F4773D]">
-            Explore marketplace
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <span className="hidden rounded-full bg-[#FFF0E5] px-4 py-3 text-sm font-semibold text-[#A65B36] sm:block">
-            📍 Durgapur
-          </span>
-
-          <ProfileShortcut/>
-
-          <button
-            onClick={handleSellClick}
-            disabled={loading}
-            className="orange-button text-sm"
-          >
-            + Sell an item
+    <div className="min-h-screen bg-[#FFF9F2] text-[#30372C]" style={{ fontFamily: "'Nunito Sans', 'Segoe UI', sans-serif" }}>
+      <div className="bg-[#2E372B] px-4 py-2 text-center text-[11px] font-black tracking-wide text-[#FFF5E5]">
+        ✳ Made for Durgapur's student community <span className="mx-2 text-[#B7C79F]">·</span> Good things deserve a second story
+      </div>
+      <header className="sticky top-0 z-30 border-b border-[#EDE1D1] bg-[#FFF9F2]/95 backdrop-blur-xl">
+        <div className="relative mx-auto flex max-w-[1360px] items-center gap-3 px-5 py-4 md:px-10">
+          <Link to="/" aria-label="DGP Finds home" className="flex shrink-0 items-center gap-2.5 no-underline text-[#30372C]">
+            <span className="grid h-10 w-10 -rotate-[7deg] place-items-center rounded-[13px] bg-[#F5794D] text-2xl font-black text-white shadow-[3px_4px_0_#30392D]">✳</span>
+            <span className="text-[23px] font-black tracking-[-1.4px] sm:text-[27px]">dgp<span className="text-[#F5794D]">finds</span></span>
+          </Link>
+          <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-center xl:block">
+            <p className="text-sm font-black tracking-[.02em]">Durgapur Student Marketplace</p>
+            <p className="mt-0.5 text-[9px] font-extrabold uppercase tracking-[.19em] text-[#B67F5F]">Find it · Love it · Pass it on</p>
+          </div>
+          <div className="flex-1" />
+          <Link to="/marketplace" className="hidden rounded-full px-3 py-2 text-sm font-black text-[#545C4D] hover:text-[#EB7650] md:inline-flex">Browse</Link>
+          <ProfileShortcut />
+          <button onClick={handleSellClick} disabled={loading} className="shrink-0 rounded-full bg-[#F5794D] px-4 py-2.5 text-xs font-black text-white shadow-[3px_3px_0_#30392D] transition hover:-translate-y-0.5 disabled:opacity-60 sm:px-5 sm:py-3 sm:text-sm">
+            <span className="sm:hidden">＋ Sell</span><span className="hidden sm:inline">＋ Sell something ↗</span>
           </button>
         </div>
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-12 md:grid-cols-2 md:px-10 md:pt-20">
-          <div>
-            <span className="inline-flex rounded-full border border-[#F9D8C3] bg-white px-4 py-2 text-xs font-extrabold tracking-widest text-[#D66D39]">
-              ✦ YOUR NEIGHBORHOOD MARKETPLACE
-            </span>
-
-            <h1 className="mt-7 text-5xl font-black leading-[1.12] tracking-tight sm:text-6xl lg:text-7xl">
-              Pre-loved stuff.
-              <br />
-              <span className="text-[#F4773D]">
-                Fresh beginnings.
-              </span>
-            </h1>
-
-            <p className="mt-6 max-w-lg text-lg leading-relaxed text-[#806C60]">
-              That old textbook, a cool desk lamp, or your next cycle.
-              Discover amazing secondhand finds from people right here
-              in Durgapur.
-            </p>
-
-            <div className="mt-9 flex flex-wrap items-center gap-4">
-              <a href="#explore" className="orange-button">
-                Explore local finds ↗
-              </a>
-              <a href="#explore" className="white-button">
-                Browse listings
-              </a>
-            </div>
-
-            <div className="mt-10 flex flex-wrap gap-5 text-sm font-medium text-[#8E7365]">
-              <span>✳ Buy & sell locally</span>
-              <span>✳ Give things a second life</span>
-            </div>
+        <div className="px-5 pt-5 text-center text-[11px] font-black uppercase tracking-[.16em] text-[#7D6F61] xl:hidden">Durgapur Student Marketplace</div>
+        <HomeHeroV2 products={featured} productsLoading={featuredLoading} onSell={handleSellClick} />
+        <div className="border-y border-[#D6E2C2] bg-[#E4EED3] px-4 py-4">
+          <div className="mx-auto flex max-w-[1360px] flex-wrap justify-center gap-x-9 gap-y-3 text-center text-[11px] font-black uppercase tracking-[.11em] text-[#4C5D43] md:justify-between md:text-xs">
+            <span>✳ Find it nearby</span><span>✳ Save some money</span><span>✳ Pass it forward</span><span>✳ Keep good things going</span>
           </div>
-
-          <div className="hero-stage">
-            <div className="hero-halo" />
-
-            <div className="feature-clay">
-              <div className="flex items-center justify-between text-xs font-extrabold tracking-widest text-[#A87556]">
-                <span>THE LOCAL FINDS CLUB</span>
-                <span className="text-xl text-[#F4773D]">✳</span>
-              </div>
-
-              <div className="item-spotlight">
-                <span className="hero-emoji">🪑</span>
-              </div>
-
-              <h3 className="mt-5 text-xl font-extrabold">
-                Good stuff, new stories.
-              </h3>
-              <p className="mt-1 text-sm text-[#917B6C]">
-                Discover • Connect • Reuse
-              </p>
+        </div>
+        <HomePreviewV2 onSell={handleSellClick} />
+        <section className="bg-[#F5E8D9] px-5 py-19 md:px-10">
+          <div className="mx-auto max-w-[1360px]">
+            <span className="text-[11px] font-black uppercase tracking-[.2em] text-[#D57850]">02 / HOW IT WORKS</span>
+            <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <h2 className="max-w-[540px] text-4xl font-black leading-[1.08] tracking-[-.055em] md:text-[56px]">Good things go around. <span className="text-[#EE784F]">↗</span></h2>
+              <p className="max-w-[480px] text-sm font-semibold leading-7 text-[#827365] md:text-base">A book that got you through finals. A desk setup ready for its next chapter. Someone nearby could love it next.</p>
             </div>
-
-            <div className="floating-clay floating-top">
-              ✨ Hidden gems nearby
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {[
+                { number: "01", icon: "🔎", title: "Spot a find", body: "Explore real preloved items around Durgapur." },
+                { number: "02", icon: "💬", title: "Say hello", body: "Contact the seller using the available contact options." },
+                { number: "03", icon: "🤝", title: "Make it yours", body: "Arrange a safe handoff and give good things a new story." },
+              ].map((step) => <div key={step.number} className="rounded-[28px] border border-[#EAD9C9] bg-[#FFF9F2] p-7 shadow-[4px_6px_0_#EBD2BF]"><div className="flex items-center justify-between"><span className="text-5xl">{step.icon}</span><span className="text-sm font-black text-[#EE875D]">{step.number}</span></div><h3 className="mt-7 text-xl font-black">{step.title}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#8B7D6E]">{step.body}</p></div>)}
             </div>
-            <div className="floating-clay floating-bottom">
-              🧡 Pre-loved, re-loved
-            </div>
-            <div className="side-item side-item-one">📚</div>
-            <div className="side-item side-item-two">🎧</div>
           </div>
         </section>
-        <section
-          id="explore"
-          className="mx-auto max-w-7xl scroll-mt-8 px-5 pb-24 md:px-10"
-        >
-          <div className="mb-8">
-            <span className="text-sm font-extrabold uppercase tracking-widest text-[#E47E4C]">
-              THE LOCAL MARKET
-            </span>
-            <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
-              Explore marketplace<span className="text-[#F4773D]">.</span>
-            </h2>
-            <p className="mt-2 text-[#92796B]">
-              A little bit of everything, right around your corner.
-            </p>
-          </div>
-
-          <div className="grid gap-7 lg:grid-cols-[235px_minmax(0,1fr)]">
-            <aside className="hidden lg:block">
-              <div className="sidebar-clay sticky top-5 p-4">
-                <h3 className="mb-4 px-3 text-sm font-black uppercase tracking-wider text-[#9C7963]">
-                  Categories
-                </h3>
-
-                <div className="space-y-2">
-                  {categories.map((category) => {
-                    const count =
-                      category.name === "All"
-                        ? listings.length
-                        : listings.filter(
-                            (p) => p.category === category.name
-                          ).length;
-
-                    return (
-                      <button
-                        key={category.name}
-                        onClick={() => setActiveCategory(category.name)}
-                        aria-pressed={activeCategory === category.name}
-                        className={`category-filter ${
-                          activeCategory === category.name ? "active" : ""
-                        }`}
-                      >
-                        <span className="text-xl">{category.icon}</span>
-                        <span className="flex-1 text-left">
-                          {category.name}
-                        </span>
-                        <span className="category-count">{count}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-7 rounded-2xl bg-[#FFF0E4] p-4">
-                  <span className="text-2xl">🧡</span>
-                  <p className="mt-2 text-sm font-extrabold">
-                    Shop small. Shop local.
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-[#947362]">
-                    Find good things from people in your own city.
-                  </p>
-                </div>
-              </div>
-            </aside>
-            <div className="min-w-0">
-              <div className="search-clay flex items-center gap-3 px-5 py-4">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#C08260"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m20 20-4-4" />
-                </svg>
-
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search books, cycles, electronics, furniture..."
-                  aria-label="Search marketplace listings"
-                  className="min-w-0 flex-1 bg-transparent text-base font-medium text-[#503D31] outline-none placeholder:text-[#B39A8D]"
-                />
-
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    className="text-sm font-bold text-[#D47B48]"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div className="mt-5 flex gap-2 overflow-x-auto pb-2 lg:hidden">
-                {categories.map((category) => (
-                  <button
-                    key={category.name}
-                    onClick={() => setActiveCategory(category.name)}
-                    aria-pressed={activeCategory === category.name}
-                    className={`mobile-category ${
-                      activeCategory === category.name ? "active" : ""
-                    }`}
-                  >
-                    {category.icon} {category.name}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-black">
-                    Fresh finds near you
-                  </h3>
-                  <p className="mt-1 text-sm text-[#9B8172]">
-                    {listingsLoading
-                      ? "Loading listings..."
-                      : listingsError
-                      ? "Listings unavailable"
-                      : `${filteredProducts.length} ${filteredProducts.length === 1 ? "listing" : "listings"} found`}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <select
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    aria-label="Filter by locality"
-                    className="filter-select"
-                  >
-                    {locations.map((area) => (
-                      <option key={area} value={area}>
-                        {area === "All areas" ? "📍 All areas" : area}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    aria-label="Sort listings"
-                    className="filter-select"
-                  >
-                    <option value="newest">Newest first</option>
-                    <option value="low">Price: Low to High</option>
-                    <option value="high">Price: High to Low</option>
-                  </select>
-                </div>
-              </div>
-
-              {listingsLoading ? (
-                <div className="mt-6 rounded-[28px] bg-white p-12 text-center shadow-sm" role="status">
-                  <div className="text-4xl">📦</div>
-                  <h3 className="mt-4 text-xl font-black">Loading local finds...</h3>
-                  <p className="mt-2 text-[#9B8172]">Checking what's available around Durgapur.</p>
-                </div>
-              ) : listingsError ? (
-                <div className="mt-6 rounded-[28px] bg-white p-12 text-center shadow-sm" role="alert">
-                  <div className="text-4xl">⚠️</div>
-                  <h3 className="mt-4 text-xl font-black">Couldn't load listings</h3>
-                  <p className="mt-2 text-[#9B8172]">{listingsError}</p>
-                  <button onClick={() => window.location.reload()} className="orange-button mt-6">
-                    Try again
-                  </button>
-                </div>
-              ) : filteredProducts.length > 0 ? (
-                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {filteredProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-6 rounded-[28px] bg-white p-12 text-center shadow-sm">
-                  <div className="text-5xl">{listings.length === 0 ? "📦" : "🔎"}</div>
-                  <h3 className="mt-4 text-xl font-black">
-                    {listings.length === 0 ? "No listings yet" : "No listings found"}
-                  </h3>
-                  <p className="mt-2 text-[#9B8172]">
-                    {listings.length === 0
-                      ? "The marketplace is ready for its first local listing."
-                      : "Try another search or change your filters."}
-                  </p>
-                  {listings.length > 0 && (
-                    <button onClick={resetFilters} className="orange-button mt-6">
-                      Reset filters
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+        <section className="px-5 py-14 md:px-10">
+          <div className="mx-auto flex max-w-[1360px] flex-col items-start justify-between gap-5 rounded-[32px] bg-[#DCEACA] px-7 py-10 md:flex-row md:items-center md:px-12">
+            <div><span className="text-[11px] font-black uppercase tracking-[.17em] text-[#65804F]">FOR THE SERIAL DECLUTTERERS</span><h2 className="mt-2 text-2xl font-black tracking-[-1px] md:text-3xl">Your stuff deserves a second act. ✳</h2><p className="mt-2 text-sm font-semibold text-[#67765D]">Make space in your room. Make someone's day.</p></div>
+            <button type="button" onClick={handleSellClick} className="shrink-0 rounded-full bg-[#30392D] px-7 py-3.5 text-sm font-black text-white">List something ↗</button>
           </div>
         </section>
       </main>
-      <AuthPrompt
-        open={authPromptOpen}
-        onClose={() => setAuthPromptOpen(false)}
-        action="sell"
-        returnTo="/sell"
-      />
+      <footer className="border-t border-[#EBE1D6] px-5 py-9 md:px-10"><div className="mx-auto flex max-w-[1360px] flex-col items-center justify-between gap-3 text-center md:flex-row md:text-left"><Link to="/" className="text-xl font-black tracking-[-1px] text-[#30372C] no-underline">dgp<span className="text-[#F5794D]">finds</span> ✳</Link><span className="text-xs font-semibold text-[#8C857A]">Good stuff. Good people. Durgapur, always. © 2026 DGP Finds</span></div></footer>
+      <AuthPrompt open={authPromptOpen} onClose={() => setAuthPromptOpen(false)} action="sell" returnTo="/sell" />
     </div>
   );
 }
-
-export default Home;

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700;800;900&display=swap');
+
+@keyframes dgpHeroCardIn {
+  from { opacity: 0; transform: translate(-14px, 14px) rotate(-12deg) scale(.96); }
+  to { opacity: 1; transform: translate(0, 0) rotate(-5deg) scale(1); }
+}
+
+@keyframes dgpHeroTextIn {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dgpHeroChipLeft {
+  from { opacity: 0; transform: translate(-12px, 8px) rotate(-12deg); }
+  to { opacity: 1; transform: translate(0, 0) rotate(-8deg); }
+}
+
+@keyframes dgpHeroChipRight {
+  from { opacity: 0; transform: translate(12px, -8px) rotate(14deg); }
+  to { opacity: 1; transform: translate(0, 0) rotate(8deg); }
+}
+
+.dgp-hero-card-in { animation: dgpHeroCardIn 650ms cubic-bezier(.2,.8,.25,1) both; }
+.dgp-hero-text-in { animation: dgpHeroTextIn 600ms cubic-bezier(.2,.8,.25,1) both; }
+.dgp-chip-in-left { animation: dgpHeroChipLeft 650ms 130ms ease-out both; }
+.dgp-chip-in-right { animation: dgpHeroChipRight 650ms 190ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dgp-hero-card-in, .dgp-hero-text-in, .dgp-chip-in-left, .dgp-chip-in-right { animation: none !important; }
+}
