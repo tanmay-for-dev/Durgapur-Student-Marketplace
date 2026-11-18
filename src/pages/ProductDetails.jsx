@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import AuthPrompt from "../components/AuthPrompt.jsx";
+import BrandLogo from "../components/BrandLogo.jsx";
 import ListingManagement, { EmailContact } from "../components/ListingManagement.jsx";
 import { supabase } from "../lib/supabase.js";
 import { getListingById, getListings } from "../services/listings.js";
@@ -21,6 +22,19 @@ function ImagePlaceholder({ category, small = false }) {
         {categoryIcons[category] ?? "📦"}
       </span>
     </div>
+  );
+}
+
+function ProductBrandHeader() {
+  return (
+    <header className="border-b border-[#EBE1D6] bg-[#FFF9F5]">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
+        <BrandLogo />
+        <Link to="/marketplace" className="shrink-0 rounded-full border border-[#E8DCCF] bg-white px-3 py-2 text-xs font-black text-[#30392D] no-underline sm:px-4 sm:text-sm">
+          Browse finds ↗
+        </Link>
+      </div>
+    </header>
   );
 }
 
@@ -215,15 +229,20 @@ export default function ProductDetails() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#FFF9F5] px-5 text-[#806C60]">
+      <>
+        <ProductBrandHeader />
+        <main className="flex min-h-screen items-center justify-center bg-[#FFF9F5] px-5 text-[#806C60]">
         <p className="text-sm font-semibold" role="status">Loading listing...</p>
       </main>
+      </>
     );
   }
 
   if (error || !product) {
     return (
-      <main className="min-h-screen bg-[#FFF9F5] px-5 py-12 text-[#342720]">
+      <>
+        <ProductBrandHeader />
+        <main className="min-h-screen bg-[#FFF9F5] px-5 py-12 text-[#342720]">
         <div className="mx-auto max-w-3xl rounded-[30px] bg-white p-10 text-center shadow-lg">
           <div className="text-5xl">{error ? "⚠️" : "😕"}</div>
           <h1 className="mt-4 text-3xl font-black">
@@ -237,6 +256,7 @@ export default function ProductDetails() {
           </Link>
         </div>
       </main>
+      </>
     );
   }
 
@@ -249,10 +269,12 @@ export default function ProductDetails() {
     : null;
 
   return (
-    <main className="min-h-screen bg-[#FFF9F5] px-4 py-6 text-[#342720] md:px-8 md:py-8">
+    <>
+      <ProductBrandHeader />
+      <main className="min-h-screen bg-[#FFF9F5] px-4 py-6 text-[#342720] md:px-8 md:py-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-5">
-          <Link to="/#explore" className="back-pill">
+          <Link to="/marketplace" className="back-pill">
             ← Back to marketplace
           </Link>
         </div>
@@ -518,7 +540,7 @@ export default function ProductDetails() {
                   Similar local finds from the marketplace
                 </p>
               </div>
-              <Link to="/#explore" className="white-button hidden sm:inline-flex">
+              <Link to="/marketplace" className="white-button hidden sm:inline-flex">
                 Browse more
               </Link>
             </div>
@@ -564,5 +586,6 @@ export default function ProductDetails() {
         returnTo={`/product/${product.id}?save=1`}
       />
     </main>
+    </>
   );
 }

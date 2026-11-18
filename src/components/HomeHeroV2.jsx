@@ -4,22 +4,22 @@ import "./HomeHeroV2.css";
 
 const slides = [
   {
+    eyebrow: "MADE FOR DURGAPUR'S STUDENTS",
+    lines: ["Durgapur's own", "second-hand", "marketplace."],
+    highlighted: 1,
+    description: "A marketplace built for students across Durgapur. Buy and sell pre-loved books, gadgets, furniture, and everyday essentials with fellow students nearby.",
+  },
+  {
     eyebrow: "GOOD THINGS GO AROUND",
     lines: ["Your old stuff.", "Someone's", "new favorite."],
     highlighted: 1,
-    description: "Pass on what you no longer need. Find something you'll love. All around Durgapur, all between real people.",
+    description: "That book you finished, the lamp you replaced, the things you no longer need — they could be exactly what another student is looking for.",
   },
   {
     eyebrow: "RIGHT AROUND THE CORNER",
     lines: ["Good finds live", "closer than", "you think."],
     highlighted: 1,
-    description: "From books to bikes, the next thing you need might be waiting in your own neighborhood.",
-  },
-  {
-    eyebrow: "MADE FOR CAMPUS LIFE",
-    lines: ["Campus life.", "Better finds.", "More stories."],
-    highlighted: 1,
-    description: "A local student marketplace for discovering, listing, and giving useful things a second chapter.",
+    description: "From college essentials to everyday favorites, discover useful second-hand finds around Durgapur without having to search far.",
   },
 ];
 
@@ -95,7 +95,7 @@ export default function HomeHeroV2({ products, productsLoading, onSell }) {
   }, [paused, reduceMotion]);
 
   const slide = slides[active];
-  const product = products.length ? products[active % products.length] : null;
+  const product = products[active] ?? null;
   const go = (step) => setActive((index) => (index + step + slides.length) % slides.length);
   const jump = () => document.getElementById("discover")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
 
@@ -113,7 +113,7 @@ export default function HomeHeroV2({ products, productsLoading, onSell }) {
       <div className="pointer-events-none absolute -right-20 -top-28 h-[450px] w-[450px] rounded-full bg-[#FFE4BB] opacity-65 blur-3xl" />
       <div className="pointer-events-none absolute left-[7%] top-[23%] h-[230px] w-[230px] rounded-full bg-[#FCE0C6] opacity-80 blur-3xl" />
       <div className="mx-auto grid max-w-[1360px] items-center gap-6 px-5 pb-12 pt-9 md:grid-cols-[.97fr_1.03fr] md:gap-14 md:px-10 md:pb-19 md:pt-15 lg:min-h-[620px]">
-        <div className="relative mx-auto h-[335px] w-full max-w-[490px] sm:h-[420px] lg:h-[480px]">
+        <div className="order-2 relative mx-auto h-[285px] w-full max-w-[490px] sm:h-[420px] lg:h-[480px]">
           <div className="absolute left-[8%] top-[12%] h-[75%] w-[78%] -rotate-[11deg] rounded-[32px] border-[3px] border-[#374032] bg-[#DFE8BC]" />
           <div className="absolute left-[17%] top-[10%] h-[78%] w-[74%] rotate-[9deg] rounded-[34px] border-[3px] border-[#374032] bg-[#F2C5AA]" />
           <div key={`spot-${active}-${product?.id ?? "empty"}`} className="dgp-hero-card-in absolute left-[13%] top-[5%] h-[82%] w-[75%] -rotate-[5deg] overflow-hidden rounded-[31px] border-[3px] border-[#374032] shadow-[9px_12px_0_#C8CCA3] sm:rounded-[38px]">
@@ -136,12 +136,12 @@ export default function HomeHeroV2({ products, productsLoading, onSell }) {
           </span>
           <span aria-hidden="true" className="absolute left-[-1%] top-[21%] -rotate-[18deg] text-[45px] text-[#EE754B]">✳</span>
         </div>
-        <div className="relative z-10 flex min-w-0 flex-col items-start">
+        <div className="order-1 relative z-10 flex min-w-0 flex-col items-start">
           <span className="mb-6 inline-flex -rotate-2 items-center gap-2 rounded-full border border-[#DFC4A3] bg-[#FFFDF7] px-4 py-2 text-[10px] font-black uppercase tracking-[1.3px] text-[#906D4C] shadow-[2px_3px_0_#ECD6B6] sm:text-xs">
             ☀️ <span key={`eyebrow-${active}`} className="dgp-hero-text-in">{slide.eyebrow}</span>
           </span>
           <div key={`slide-${active}`} className="dgp-hero-text-in w-full">
-            <h1 className="max-w-[680px] text-[clamp(44px,5.3vw,80px)] font-black leading-[1.035] tracking-[-.065em] text-[#30372C]">
+            <h1 className={`max-w-[680px] font-black leading-[1.035] tracking-[-.065em] text-[#30372C] ${active === 0 ? "text-[clamp(36px,4.6vw,68px)]" : "text-[clamp(42px,5.3vw,80px)]"}`}>
               {slide.lines.map((line, index) => (
                 <span key={line} className={`block ${index === slide.highlighted ? "text-[#EF754B]" : ""}`}>{line}</span>
               ))}

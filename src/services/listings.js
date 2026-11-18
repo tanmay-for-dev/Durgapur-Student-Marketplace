@@ -59,10 +59,10 @@ function normalizeListing(listing) {
     username: listing.seller?.username ?? "Member",
     sellerName: listing.seller?.display_name ?? "DGP Finds Member",
     sellerAvatar: listing.seller?.avatar_path
-  ? supabase.storage
-      .from("avatars")
-      .getPublicUrl(listing.seller.avatar_path).data.publicUrl
-  : null,
+      ? supabase.storage
+          .from("avatars")
+          .getPublicUrl(listing.seller.avatar_path).data.publicUrl
+      : null,
     image: images[0] ?? null,
     images,
     whatsapp: listing.whatsapp_number,
@@ -99,7 +99,10 @@ export async function getListingById(id) {
 }
 
 export async function getHomepageListings(limit = 8) {
-  const safeLimit = Math.min(8, Math.max(1, Math.floor(Number(limit) || 8)));
+  const safeLimit = Math.min(
+    8,
+    Math.max(1, Math.floor(Number(limit) || 8))
+  );
 
   const { data, error } = await supabase
     .from("listings")
@@ -110,6 +113,7 @@ export async function getHomepageListings(limit = 8) {
     .limit(safeLimit);
 
   if (error) throw error;
+
   return (data ?? []).map(normalizeListing);
 }
 
@@ -120,6 +124,7 @@ export async function getMarketplaceLocalities() {
     .order("name", { ascending: true });
 
   if (error) throw error;
+
   return data ?? [];
 }
 
@@ -135,8 +140,16 @@ export async function getMarketplaceListings({
   page = 1,
   pageSize = 12,
 } = {}) {
-  const safePage = Math.max(1, Math.floor(Number(page) || 1));
-  const safePageSize = Math.min(24, Math.max(1, Math.floor(Number(pageSize) || 12)));
+  const safePage = Math.max(
+    1,
+    Math.floor(Number(page) || 1)
+  );
+
+  const safePageSize = Math.min(
+    24,
+    Math.max(1, Math.floor(Number(pageSize) || 12))
+  );
+
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
@@ -154,14 +167,21 @@ export async function getMarketplaceListings({
     query = query.ilike("title", `%${term}%`);
   }
 
-  if (category && !["All", "Everything", "All finds"].includes(category)) {
+  if (
+    category &&
+    !["All", "Everything", "All finds"].includes(category)
+  ) {
     query = query.eq("category", category);
   }
 
   if (localityIds.length) {
     const ids = localityIds.map(Number);
 
-    if (ids.some((id) => !Number.isSafeInteger(id) || id < 1)) {
+    if (
+      ids.some(
+        (id) => !Number.isSafeInteger(id) || id < 1
+      )
+    ) {
       throw new Error("Invalid locality filter.");
     }
 
@@ -222,4 +242,46 @@ export async function getMarketplaceListings({
     pageSize: safePageSize,
     hasMore: from + items.length < totalCount,
   };
+}
+
+export async function getHeroFeaturedListings() {
+  const { data, error } = await supabase
+    .from("listings")
+    .select(listingFields)
+    .eq("status", "available")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(30);
+
+  if (error) throw error;
+
+  const candidates = (data ?? []).map(normalizeListing);
+  const featured = [];
+  const pickedIds = new Set();
+  const pickedCategories = new Set();
+
+  for (const listing of candidates) {
+    const category = String(
+      listing.category ?? "Other"
+    ).trim().toLowerCase();
+
+    if (pickedCategories.has(category)) continue;
+
+    featured.push(listing);
+    pickedIds.add(listing.id);
+    pickedCategories.add(category);
+
+    if (featured.length === 3) return featured;
+  }
+
+  for (const listing of candidates) {
+    if (pickedIds.has(listing.id)) continue;
+
+    featured.push(listing);
+    pickedIds.add(listing.id);
+
+    if (featured.length === 3) break;
+  }
+
+  return featured;
 }

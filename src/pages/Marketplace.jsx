@@ -4,6 +4,7 @@ import { getMarketplaceListings, getMarketplaceLocalities } from "../services/li
 import { useAuth } from "../context/AuthContext.jsx";
 import AuthPrompt from "../components/AuthPrompt.jsx";
 import ProfileShortcut from "../components/ProfileShortcut.jsx";
+import BrandLogo from "../components/BrandLogo.jsx";
 
 const categories = [
   { name: "All", icon: "✳" },
@@ -456,22 +457,16 @@ export default function Marketplace() {
       </div>
 
       <header className="sticky top-0 z-20 border-b border-[#EEE4D7] bg-[#FFF9F2]/95 backdrop-blur-lg">
-        <div className="relative mx-auto flex max-w-[1380px] items-center gap-3 px-5 py-4 md:px-10">
-          <Link to="/" className="flex shrink-0 items-center gap-2 text-inherit no-underline">
-            <span className="grid h-10 w-10 -rotate-6 place-items-center rounded-[13px] bg-[#F5794D] text-2xl text-white shadow-[3px_4px_0_#30392D]">✳</span>
-            <span className="text-2xl font-black tracking-[-1px]">dgp<span className="text-[#F5794D]">finds</span></span>
-          </Link>
-          <span className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-sm font-black lg:block">
-            Durgapur Student Marketplace
-          </span>
+        <div className="mx-auto flex max-w-[1380px] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4 md:px-10">
+          <BrandLogo />
           <div className="flex-1" />
           <span className="hidden md:block"><ProfileShortcut /></span>
           <button
             onClick={handleSellClick}
             disabled={authLoading}
-            className="rounded-full bg-[#F5794D] px-4 py-3 text-xs font-black text-white shadow-[3px_4px_0_#30392D] disabled:opacity-60 sm:px-5 sm:text-sm"
+            className="shrink-0 rounded-full bg-[#F5794D] px-3 py-2.5 text-xs font-black text-white shadow-[3px_4px_0_#30392D] disabled:opacity-60 sm:px-5 sm:py-3 sm:text-sm"
           >
-            ＋ Sell something ↗
+            <span className="sm:hidden">＋ Sell</span><span className="hidden sm:inline">＋ Sell something ↗</span>
           </button>
         </div>
       </header>

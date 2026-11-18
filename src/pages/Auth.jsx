@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
+import BrandLogo from "../components/BrandLogo.jsx";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -67,14 +68,17 @@ export default function Auth() {
 
     try {
       if (isSignup) {
-        const redirectUrl =
-          `${window.location.origin}/auth?next=${encodeURIComponent(next)}`;
+        const redirectUrl = new URL(
+          "/auth",
+          "https://durgapur-student-marketplace.vercel.app"
+        );
+        redirectUrl.searchParams.set("next", next);
 
         const { data, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: redirectUrl,
+            emailRedirectTo: redirectUrl.toString(),
           },
         });
 
@@ -110,15 +114,9 @@ export default function Auth() {
     <main className="flex min-h-screen items-center justify-center bg-[#FFF8F3] px-4 py-8 text-[#342720] sm:px-6">
       <div className="grid w-full max-w-5xl overflow-hidden rounded-[32px] border border-white bg-white shadow-[14px_20px_55px_#e9d5c7,-8px_-8px_30px_#ffffff] md:min-h-[650px] md:grid-cols-[0.95fr_1.05fr]">
         <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#FFE4D2] via-[#FFD4B5] to-[#FFA977] p-10 md:flex md:flex-col md:justify-between">
-          <Link
-            to="/"
-            className="relative z-10 flex items-center gap-3 text-xl font-black text-[#563626] no-underline"
-          >
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#F4773D] text-2xl text-white shadow-[inset_3px_3px_6px_#FFAC7B,4px_6px_12px_#D78F6B]">
-              ↗
-            </span>
-            dgp<span className="-ml-3 text-[#D75F2C]">finds.</span>
-          </Link>
+          <div className="relative z-10 self-start">
+            <BrandLogo />
+          </div>
 
           <div className="pointer-events-none absolute left-1/2 top-[42%] h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FFEAD8] shadow-[inset_14px_15px_30px_#ffffff,15px_20px_35px_#E8A77F]"></div>
 
