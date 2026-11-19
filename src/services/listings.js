@@ -19,6 +19,12 @@ const listingFields = `
   images:listing_images(storage_path, position)
 `;
 
+const listingDetailFields = `${listingFields},
+  meetupAreas:listing_meetup_areas(
+    locality:localities!listing_meetup_areas_locality_id_fkey(name)
+  )
+`;
+
 function formatPosted(date) {
   const hours = Math.max(
     0,
@@ -68,6 +74,10 @@ function normalizeListing(listing) {
     whatsapp: listing.whatsapp_number,
     phone: listing.call_number,
     meetupPolicy: listing.meetup_policy,
+    meetupAreas: (listing.meetupAreas ?? [])
+      .map((area) => area.locality?.name)
+      .filter(Boolean)
+      .sort((first, second) => first.localeCompare(second)),
     travelNote: listing.travel_note,
   };
 }
@@ -88,7 +98,7 @@ export async function getListings() {
 export async function getListingById(id) {
   const { data, error } = await supabase
     .from("listings")
-    .select(listingFields)
+    .select(listingDetailFields)
     .eq("id", id)
     .in("status", ["available", "reserved", "sold"])
     .maybeSingle();

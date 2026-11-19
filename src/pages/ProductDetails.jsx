@@ -260,6 +260,13 @@ export default function ProductDetails() {
     );
   }
 
+  const meetupAreaNames = product.meetupAreas ?? [];
+  const meetupSummary = product.meetupPolicy === "selected_areas"
+    ? meetupAreaNames.length
+      ? meetupAreaNames.join(", ")
+      : "Ask seller about meetup areas"
+    : "Pickup only";
+
   const photo = product.images[selectedImage];
   const whatsappUrl = product.whatsapp
     ? `https://wa.me/${product.whatsapp.replace(/\D/g, "")}`
@@ -292,7 +299,7 @@ export default function ProductDetails() {
               ★
             </button>
 
-            <div className="product-main-image">
+            <div className="product-main-image relative">
               {!photo || imageFailed ? (
                 <ImagePlaceholder category={product.category} />
               ) : (
@@ -302,6 +309,11 @@ export default function ProductDetails() {
                   onError={() => setImageFailed(true)}
                   className="h-full w-full object-cover"
                 />
+              )}
+              {product.status === "sold" && (
+                <span className="absolute bottom-4 left-4 z-10 rounded-xl bg-[#30392D] px-4 py-2.5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_6px_18px_#30392D55] sm:bottom-5 sm:left-5 sm:text-sm">
+                  Sold
+                </span>
               )}
             </div>
 
@@ -335,13 +347,6 @@ export default function ProductDetails() {
               </p>
             )}
 
-            <div className="mt-4 rounded-[24px] bg-white/80 p-4 shadow-sm">
-              <div className="flex flex-wrap gap-2">
-                <span className="detail-chip">{product.category}</span>
-                <span className="detail-chip">{product.condition}</span>
-                <span className="detail-chip">{product.status === "available" ? "Available" : product.status}</span>
-              </div>
-            </div>
           </div>
 
           <div className="product-info-shell">
@@ -358,10 +363,17 @@ export default function ProductDetails() {
               </h1>
 
               <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-                <p className="text-4xl font-black tracking-tight text-[#F4773D] md:text-5xl">
-                  ₹{product.price.toLocaleString("en-IN")}
-                </p>
-                
+                <div>
+                  <p className="text-4xl font-black tracking-tight text-[#F4773D] md:text-5xl">
+                    ₹{product.price.toLocaleString("en-IN")}
+                  </p>
+                  {product.condition && (
+                    <p className="mt-2 text-sm font-medium text-[#8A7B70]">
+                      Condition: <span className="font-semibold text-[#594C43]">{product.condition}</span>
+                    </p>
+                  )}
+                </div>
+
 <div className="flex items-center gap-3">
   <Link
     to={`/u/${product.username}`}
@@ -409,7 +421,7 @@ export default function ProductDetails() {
                     Meetup preference
                   </p>
                   <p className="mt-1 text-sm font-extrabold text-[#46342A]">
-                    {product.meetupPolicy === "selected_areas" ? "Selected areas" : "Pickup only"}
+                    {meetupSummary}
                   </p>
                 </div>
               </div>
@@ -436,7 +448,7 @@ export default function ProductDetails() {
                     onClick={() => setActiveTab("contact")}
                     className={`product-tab ${activeTab === "contact" ? "active" : ""}`}
                   >
-                    Contact Owner
+                    {product.status === "sold" ? "Availability" : "Contact Owner"}
                   </button>
                   <button
                     type="button"
@@ -449,6 +461,20 @@ export default function ProductDetails() {
 
                 <div className="tab-panel mt-5">
                   {activeTab === "contact" ? (
+                    product.status === "sold" ? (
+                      <div role="status" className="rounded-[22px] border border-[#E8DCCF] bg-[#FFF6F0] px-5 py-8 text-center sm:px-8">
+                        <h3 className="text-xl font-black text-[#30392D]">This item is no longer available</h3>
+                        <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-6 text-[#85776C]">
+                          This listing has been sold. Contact options are no longer available for this item.
+                        </p>
+                        <Link
+                          to="/marketplace"
+                          className="mt-6 inline-flex rounded-full bg-[#30392D] px-6 py-3 text-sm font-black text-white no-underline transition hover:bg-[#465241]"
+                        >
+                          Browse other finds ↗
+                        </Link>
+                      </div>
+                    ) : (
                     <div className="space-y-4">
                       <div className="rounded-[22px] bg-[#FFF6F0] p-4">
                         <p className="text-sm font-bold text-[#9C7A66]">
@@ -494,6 +520,7 @@ export default function ProductDetails() {
   showFallback={!whatsappUrl && !phoneUrl}
 />
                     </div>
+                    )
                   ) : (
                     <div className="space-y-4">
                       <div className="location-card">
@@ -509,18 +536,20 @@ export default function ProductDetails() {
                         <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
                           Meetup arrangements
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="travel-chip">
-                            {product.meetupPolicy === "selected_areas"
-                              ? "Selected meetup areas"
-                              : "Pickup in seller's area"}
-                          </span>
-                        </div>
+                        <p className="mt-3 text-sm font-extrabold leading-6 text-[#43332A]">
+                          {product.meetupPolicy === "selected_areas"
+                            ? meetupAreaNames.length
+                              ? meetupAreaNames.join(", ")
+                              : "Ask the seller about available meetup areas"
+                            : "Pickup in seller's area"}
+                        </p>
                         <p className="mt-4 text-sm text-[#7D675B]">
-                          {product.travelNote ||
-                            (product.meetupPolicy === "selected_areas"
-                              ? "Ask the seller which areas work for a meetup."
-                              : "Contact the seller to arrange pickup.")}
+                          {product.status === "sold"
+                            ? "This listing has been sold, so meetup arrangements are no longer available."
+                            : product.travelNote ||
+                              (product.meetupPolicy === "selected_areas"
+                                ? "Contact the seller to confirm a meetup place and time."
+                                : "Contact the seller to arrange pickup.")}
                         </p>
                       </div>
                     </div>
