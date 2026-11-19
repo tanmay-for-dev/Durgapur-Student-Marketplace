@@ -7,6 +7,7 @@ import HomeHeroV2 from "../components/HomeHeroV2.jsx";
 import HomePreviewV2 from "../components/HomePreviewV2.jsx";
 import { getHeroFeaturedListings } from "../services/listings.js";
 import BrandLogo from "../components/BrandLogo.jsx";
+import PushPermissionInvite from "../components/PushPermissionInvite.jsx";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -105,6 +106,7 @@ export default function Home() {
     </span>
   </div>
 </footer> 
+      <PushPermissionInvite user={user} occasion="returned_home" />
       <AuthPrompt open={authPromptOpen} onClose={() => setAuthPromptOpen(false)} action="sell" returnTo="/sell" />
     </div>
   );

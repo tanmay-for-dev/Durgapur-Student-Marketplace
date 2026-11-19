@@ -9,6 +9,8 @@ import Sell from "./pages/Sell.jsx";
 import Profile from "./pages/Profile.jsx";
 import EditProfile from "./pages/EditProfile.jsx";
 import Marketplace from "./pages/Marketplace.jsx";
+import SavedItems from "./pages/SavedItems.jsx";
+
 
 function App() {
   return (
@@ -23,6 +25,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/u/:username" element={<Profile />} />  
+          <Route path="/saved" element={<SavedItems />} />
           <Route
             path="*"
             element={

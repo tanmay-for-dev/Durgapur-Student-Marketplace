@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getLocalities, submitListingForReview } from "../services/createListing.js";
+import PushPermissionInvite from "../components/PushPermissionInvite.jsx";
+import { recordSellerStudioVisit } from "../services/pushOnboarding.js";
 
 const categories = ["Books", "Electronics", "Furniture", "Cycles", "Others"];
 const conditions = ["Like new", "Good", "Used"];
@@ -68,6 +70,10 @@ export default function Sell() {
 
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [photos]);
+
+  useEffect(() => {
+    if (!authLoading && user?.id) recordSellerStudioVisit(user);
+  }, [authLoading, user?.id]);
 
   function updateField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -207,6 +213,7 @@ if (form.title.trim().length < 4 || form.title.trim().length > 120) {
           <p className="mt-3 text-xs text-[#A48B7E]">
             Submission reference: {submittedId.slice(0, 8)}
           </p>
+          <PushPermissionInvite user={user} occasion="after_submission" />
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/profile"

@@ -460,6 +460,11 @@ export default function Marketplace() {
         <div className="mx-auto flex max-w-[1380px] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4 md:px-10">
           <BrandLogo />
           <div className="flex-1" />
+          {user && (
+            <Link to="/saved" className="hidden rounded-full px-3 py-2 text-sm font-black text-[#545C4D] no-underline hover:text-[#EB7650] md:inline-flex">
+              ♡ Saved
+            </Link>
+          )}
           <span className="hidden md:block"><ProfileShortcut /></span>
           <button
             onClick={handleSellClick}
@@ -634,7 +639,7 @@ export default function Marketplace() {
 
       <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-[#E7DBCD] bg-[#FFF9F2]/95 px-2 py-2.5 backdrop-blur-md md:hidden">
         <Link to="/marketplace" aria-current="page" className="flex flex-col items-center text-[10px] font-black text-[#E87650] no-underline"><span className="text-xl">⌕</span>Explore</Link>
-        <button disabled title="Saved items are coming next" className="flex flex-col items-center text-[10px] font-bold text-[#AAA095]"><span className="text-xl">♡</span>Saved soon</button>
+        <Link to="/saved" className="flex flex-col items-center text-[10px] font-bold text-[#756E64] no-underline"><span className="text-xl">♡</span>Saved</Link>
         <button onClick={handleSellClick} className="flex flex-col items-center text-[10px] font-bold text-[#756E64]"><span className="text-xl">＋</span>Sell</button>
         <Link to="/profile" className="flex flex-col items-center text-[10px] font-bold text-[#756E64] no-underline"><span className="text-xl">☺</span>Profile</Link>
       </nav>
