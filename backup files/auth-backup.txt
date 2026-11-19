@@ -70,7 +70,7 @@ export default function Auth() {
       if (isSignup) {
         const redirectUrl = new URL(
           "/auth",
-          "https://durgapur-student-marketplace.vercel.app"
+          "https://dgpfinds.vercel.app"
         );
         redirectUrl.searchParams.set("next", next);
 

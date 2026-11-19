@@ -246,9 +246,12 @@ export default function Auth() {
             )}
 
             {message && (
-              <p role="status" className="rounded-xl bg-[#FFF1E5] px-4 py-3 text-sm text-[#93613E]">
-                {message}
-              </p>
+              <div role="status" className="rounded-xl bg-[#FFF1E5] px-4 py-3 text-sm text-[#93613E]">
+                <p>{message}</p>
+                <p className="mt-2 text-xs font-semibold leading-5">
+                  Can't find the email? Check your Spam or Promotions folder. Delivery can take a few minutes.
+                </p>
+              </div>
             )}
 
             <button
