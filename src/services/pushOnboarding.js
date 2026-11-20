@@ -48,6 +48,7 @@ export function shouldOfferPushInvite(user, occasion) {
   if (!isNewlyRegisteredUser(user)) return false;
   const { supported, permission } = getPushSupport();
   if (!supported || permission === "denied") return false;
+  if (!getPushSupport().configured) return false;
   const state = loadState(user.id);
   if (state.decision === "enabled" || state.decision === "not_now") return false;
   if (occasion === "after_submission") return true;

@@ -448,7 +448,7 @@ export default function ProductDetails() {
                     onClick={() => setActiveTab("contact")}
                     className={`product-tab ${activeTab === "contact" ? "active" : ""}`}
                   >
-                    Contact Owner
+                    {product.status === "sold" ? "Availability" : "Contact Owner"}
                   </button>
                   <button
                     type="button"
@@ -461,6 +461,20 @@ export default function ProductDetails() {
 
                 <div className="tab-panel mt-5">
                   {activeTab === "contact" ? (
+                    product.status === "sold" ? (
+                      <div role="status" className="rounded-[22px] border border-[#E8DCCF] bg-[#FFF6F0] px-5 py-8 text-center sm:px-8">
+                        <h3 className="text-xl font-black text-[#30392D]">This item is no longer available</h3>
+                        <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-6 text-[#85776C]">
+                          This listing has been sold. Contact options are no longer available for this item.
+                        </p>
+                        <Link
+                          to="/marketplace"
+                          className="mt-6 inline-flex rounded-full bg-[#30392D] px-6 py-3 text-sm font-black text-white no-underline transition hover:bg-[#465241]"
+                        >
+                          Browse other finds ↗
+                        </Link>
+                      </div>
+                    ) : (
                     <div className="space-y-4">
                       <div className="rounded-[22px] bg-[#FFF6F0] p-4">
                         <p className="text-sm font-bold text-[#9C7A66]">
@@ -506,6 +520,7 @@ export default function ProductDetails() {
   showFallback={!whatsappUrl && !phoneUrl}
 />
                     </div>
+                    )
                   ) : (
                     <div className="space-y-4">
                       <div className="location-card">
@@ -529,10 +544,12 @@ export default function ProductDetails() {
                             : "Pickup in seller's area"}
                         </p>
                         <p className="mt-4 text-sm text-[#7D675B]">
-                          {product.travelNote ||
-                            (product.meetupPolicy === "selected_areas"
-                              ? "Contact the seller to confirm a meetup place and time."
-                              : "Contact the seller to arrange pickup.")}
+                          {product.status === "sold"
+                            ? "This listing has been sold, so meetup arrangements are no longer available."
+                            : product.travelNote ||
+                              (product.meetupPolicy === "selected_areas"
+                                ? "Contact the seller to confirm a meetup place and time."
+                                : "Contact the seller to arrange pickup.")}
                         </p>
                       </div>
                     </div>

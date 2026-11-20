@@ -1,8 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import BrandLogo from "../components/BrandLogo.jsx";
+
+const usernamePattern = /^[a-z][a-z0-9_]{2,14}$/;
+const usernameTaken = "That username is already taken. Try another.";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export default function Auth() {
   const [mode, setMode] = useState(
     params.get("mode") === "signup" ? "signup" : "login"
   );
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -68,6 +71,23 @@ export default function Auth() {
 
     try {
       if (isSignup) {
+        const cleanUsername = username.trim().toLowerCase();
+        if (!usernamePattern.test(cleanUsername)) {
+          throw new Error("Use 3–15 characters, starting with a letter. Letters, numbers, and underscores are allowed.");
+        }
+
+        async function checkUsernameTaken() {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("username")
+            .eq("username", cleanUsername)
+            .maybeSingle();
+          if (error) throw error;
+          return Boolean(data);
+        }
+
+        if (await checkUsernameTaken()) throw new Error(usernameTaken);
+
         const redirectUrl = new URL(
           "/auth",
           "https://dgpfinds.vercel.app"
@@ -79,10 +99,16 @@ export default function Auth() {
           password,
           options: {
             emailRedirectTo: redirectUrl.toString(),
+            data: { username: cleanUsername },
           },
         });
 
-        if (authError) throw authError;
+        if (authError) {
+          if (authError.code === "unexpected_failure" && await checkUsernameTaken()) {
+            throw new Error(usernameTaken);
+          }
+          throw authError;
+        }
 
         if (data.session) {
           navigate(next, { replace: true });
@@ -185,6 +211,31 @@ export default function Auth() {
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            {isSignup && (
+              <div>
+                <label htmlFor="auth-username" className="mb-2 block text-sm font-bold text-[#604A3E]">
+                  Username
+                </label>
+                <input
+                  id="auth-username"
+                  type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  minLength={3}
+                  maxLength={15}
+                  aria-describedby="auth-username-help"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="yourusername"
+                  className="w-full rounded-2xl border border-[#F1DCCE] bg-[#FFFBF8] px-4 py-4 text-sm text-[#342720] outline-none transition focus:border-[#F4773D] focus:ring-2 focus:ring-[#F4773D]/15"
+                />
+                <p id="auth-username-help" className="mt-2 text-xs leading-5 text-[#947B6D]">
+                  3–15 characters. Start with a letter. Numbers and underscores are optional.
+                </p>
+              </div>
+            )}
             <div>
               <label
                 htmlFor="auth-email"

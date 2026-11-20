@@ -232,8 +232,8 @@ export default function ProductDetails() {
       <>
         <ProductBrandHeader />
         <main className="flex min-h-screen items-center justify-center bg-[#FFF9F5] px-5 text-[#806C60]">
-        <p className="text-sm font-semibold" role="status">Loading listing...</p>
-      </main>
+          <p className="text-sm font-semibold" role="status">Loading listing...</p>
+        </main>
       </>
     );
   }
@@ -243,19 +243,19 @@ export default function ProductDetails() {
       <>
         <ProductBrandHeader />
         <main className="min-h-screen bg-[#FFF9F5] px-5 py-12 text-[#342720]">
-        <div className="mx-auto max-w-3xl rounded-[30px] bg-white p-10 text-center shadow-lg">
-          <div className="text-5xl">{error ? "⚠️" : "😕"}</div>
-          <h1 className="mt-4 text-3xl font-black">
-            {error ? "Couldn't load this listing" : "Product not found"}
-          </h1>
-          <p className="mt-2 text-[#8A7367]">
-            {error || "This listing may have been removed or the link may be incorrect."}
-          </p>
-          <Link to="/" className="orange-button mt-6 inline-flex">
-            Back to marketplace
-          </Link>
-        </div>
-      </main>
+          <div className="mx-auto max-w-3xl rounded-[30px] bg-white p-10 text-center shadow-lg">
+            <div className="text-5xl">{error ? "⚠️" : "😕"}</div>
+            <h1 className="mt-4 text-3xl font-black">
+              {error ? "Couldn't load this listing" : "Product not found"}
+            </h1>
+            <p className="mt-2 text-[#8A7367]">
+              {error || "This listing may have been removed or the link may be incorrect."}
+            </p>
+            <Link to="/" className="orange-button mt-6 inline-flex">
+              Back to marketplace
+            </Link>
+          </div>
+        </main>
       </>
     );
   }
@@ -268,6 +268,9 @@ export default function ProductDetails() {
     : "Pickup only";
 
   const photo = product.images[selectedImage];
+  const sellerLabel = /^user_[a-f0-9]{32}$/.test(product.username)
+    ? product.sellerName || "DGP Finds Member"
+    : `@${product.username}`;
   const whatsappUrl = product.whatsapp
     ? `https://wa.me/${product.whatsapp.replace(/\D/g, "")}`
     : null;
@@ -279,342 +282,337 @@ export default function ProductDetails() {
     <>
       <ProductBrandHeader />
       <main className="min-h-screen bg-[#FFF9F5] px-4 py-6 text-[#342720] md:px-8 md:py-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-5">
-          <Link to="/marketplace" className="back-pill">
-            ← Back to marketplace
-          </Link>
-        </div>
-
-        <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="product-showcase">
-            <button
-              type="button"
-              onClick={handleFavorite}
-              disabled={authLoading || favoriteLoading}
-              className={`favorite-float ${saved ? "active" : ""}`}
-              aria-label={saved ? "Remove from favorites" : "Save to favorites"}
-              aria-pressed={saved}
-            >
-              ★
-            </button>
-
-            <div className="product-main-image relative">
-              {!photo || imageFailed ? (
-                <ImagePlaceholder category={product.category} />
-              ) : (
-                <img
-                  src={photo}
-                  alt={product.name}
-                  onError={() => setImageFailed(true)}
-                  className="h-full w-full object-cover"
-                />
-              )}
-              {product.status === "sold" && (
-                <span className="absolute bottom-4 left-4 z-10 rounded-xl bg-[#30392D] px-4 py-2.5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_6px_18px_#30392D55] sm:bottom-5 sm:left-5 sm:text-sm">
-                  Sold
-                </span>
-              )}
-            </div>
-
-            {product.images.length > 1 && (
-              <div className="mt-4 flex flex-wrap gap-3">
-                {product.images.map((image, index) => (
-                  <button
-                    type="button"
-                    key={image}
-                    onClick={() => {
-                      setSelectedImage(index);
-                      setImageFailed(false);
-                    }}
-                    aria-label={`View product photo ${index + 1}`}
-                    aria-pressed={selectedImage === index}
-                    className={`h-20 w-20 overflow-hidden rounded-2xl border-2 bg-white ${
-                      selectedImage === index
-                        ? "border-[#F4773D]"
-                        : "border-white"
-                    }`}
-                  >
-                    <img src={image} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {favoriteError && (
-              <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-                {favoriteError}
-              </p>
-            )}
-
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-5">
+            <Link to="/marketplace" className="back-pill">
+              ← Back to marketplace
+            </Link>
           </div>
 
-          <div className="product-info-shell">
-            <div className="rounded-[32px] bg-white p-6 shadow-[10px_15px_35px_#ecd6c7] md:p-8">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="product-page-badge">{product.category}</span>
-                <span className="text-sm font-semibold text-[#9D8579]">
-                  Posted {product.posted}
-                </span>
-              </div>
-
-              <h1 className="mt-5 text-3xl font-black leading-tight md:text-5xl">
-                {product.name}
-              </h1>
-
-              <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="text-4xl font-black tracking-tight text-[#F4773D] md:text-5xl">
-                    ₹{product.price.toLocaleString("en-IN")}
-                  </p>
-                  {product.condition && (
-                    <p className="mt-2 text-sm font-medium text-[#8A7B70]">
-                      Condition: <span className="font-semibold text-[#594C43]">{product.condition}</span>
-                    </p>
-                  )}
-                </div>
-
-<div className="flex items-center gap-3">
-  <Link
-    to={`/u/${product.username}`}
-    aria-label={`View ${product.username}'s profile`}
-    className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#F4C6A9] bg-[#FFE6D4] text-lg font-black text-[#D9733D] transition hover:scale-105"
+          <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="product-showcase">
+              <div className="product-main-image relative">
+  <button
+    type="button"
+    onClick={handleFavorite}
+    disabled={authLoading || favoriteLoading}
+    aria-label={saved ? "Remove from favorites" : "Save to favorites"}
+    aria-pressed={saved}
+    className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/80 bg-white/95 text-xl font-black text-[#F4773D] shadow-[2px_4px_11px_#42372D30] transition hover:scale-105 disabled:cursor-wait disabled:opacity-50"
   >
-    {product.sellerAvatar ? (
-      <img
-        src={product.sellerAvatar}
-        alt=""
-        className="h-full w-full object-cover"
-      />
-    ) : (
-      (product.sellerName || "D").charAt(0).toUpperCase()
-    )}
-  </Link>
-
-  <div className="text-right">
-    <p className="text-xs font-semibold text-[#9D8579]">
-      Listed by
-    </p>
-
-    <Link
-      to={`/u/${product.username}`}
-      className="mt-1 block text-sm font-black text-[#342720] no-underline transition hover:text-[#F4773D]"
-    >
-      @{product.username}
-    </Link>
-  </div>
-</div>
-
+    {saved ? "♥" : "♡"}
+  </button>
+                {!photo || imageFailed ? (
+                  <ImagePlaceholder category={product.category} />
+                ) : (
+                  <img
+                    src={photo}
+                    alt={product.name}
+                    onError={() => setImageFailed(true)}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+                {product.status === "sold" && (
+                  <span className="absolute bottom-4 left-4 z-10 rounded-xl bg-[#30392D] px-4 py-2.5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_6px_18px_#30392D55] sm:bottom-5 sm:left-5 sm:text-sm">
+                    Sold
+                  </span>
+                )}
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="meta-clay">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
-                    Location
-                  </p>
-                  <p className="mt-1 text-sm font-extrabold text-[#46342A]">
-                    📍 {product.location}, Durgapur
-                  </p>
+              {product.images.length > 1 && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {product.images.map((image, index) => (
+                    <button
+                      type="button"
+                      key={image}
+                      onClick={() => {
+                        setSelectedImage(index);
+                        setImageFailed(false);
+                      }}
+                      aria-label={`View product photo ${index + 1}`}
+                      aria-pressed={selectedImage === index}
+                      className={`h-20 w-20 overflow-hidden rounded-2xl border-2 bg-white ${
+                        selectedImage === index
+                          ? "border-[#F4773D]"
+                          : "border-white"
+                      }`}
+                    >
+                      <img src={image} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
                 </div>
-                <div className="meta-clay">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
-                    Meetup preference
-                  </p>
-                  <p className="mt-1 text-sm font-extrabold text-[#46342A]">
-                    {meetupSummary}
-                  </p>
-                </div>
-              </div>
+              )}
 
-              <div className="mt-7">
-                <h2 className="text-lg font-black">Product details</h2>
-                <p className="mt-3 whitespace-pre-line leading-7 text-[#7D675B]">
-                  {product.description || "The seller hasn't added a description yet."}
+              {favoriteError && (
+                <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                  {favoriteError}
                 </p>
-              </div>
-              <ListingManagement
-  listingId={product.id}
-  status={product.status}
-  onSold={() =>
-    setProduct((current) =>
-      current ? { ...current, status: "sold" } : current
-    )
-  }
-/>
-              <div className="mt-8">
-                <div className="tab-row">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("contact")}
-                    className={`product-tab ${activeTab === "contact" ? "active" : ""}`}
-                  >
-                    {product.status === "sold" ? "Availability" : "Contact Owner"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("location")}
-                    className={`product-tab ${activeTab === "location" ? "active" : ""}`}
-                  >
-                    Location & Meetup
-                  </button>
-                </div>
-
-                <div className="tab-panel mt-5">
-                  {activeTab === "contact" ? (
-                    product.status === "sold" ? (
-                      <div role="status" className="rounded-[22px] border border-[#E8DCCF] bg-[#FFF6F0] px-5 py-8 text-center sm:px-8">
-                        <h3 className="text-xl font-black text-[#30392D]">This item is no longer available</h3>
-                        <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-6 text-[#85776C]">
-                          This listing has been sold. Contact options are no longer available for this item.
-                        </p>
-                        <Link
-                          to="/marketplace"
-                          className="mt-6 inline-flex rounded-full bg-[#30392D] px-6 py-3 text-sm font-black text-white no-underline transition hover:bg-[#465241]"
-                        >
-                          Browse other finds ↗
-                        </Link>
-                      </div>
-                    ) : (
-                    <div className="space-y-4">
-                      <div className="rounded-[22px] bg-[#FFF6F0] p-4">
-                        <p className="text-sm font-bold text-[#9C7A66]">
-                          Connect with the seller directly
-                        </p>
-                        <p className="mt-1 text-sm text-[#7D675B]">
-                          Choose a contact method to discuss availability, condition, or meetup timing.
-                        </p>
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {whatsappUrl && (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="contact-action whatsapp"
-                          >
-                            <span className="text-xl">💬</span>
-                            <div>
-                              <p className="font-extrabold">WhatsApp</p>
-                              <p className="text-xs text-[#6F655F]">Message seller</p>
-                            </div>
-                          </a>
-                        )}
-
-                        {phoneUrl && (
-                          <a href={phoneUrl} className="contact-action">
-                            <span className="text-xl">📞</span>
-                            <div>
-                              <p className="font-extrabold">Call Owner</p>
-                              <p className="text-xs text-[#6F655F]">{product.phone}</p>
-                            </div>
-                          </a>
-                        )}
-                      </div>
-
-              
-
-                      <EmailContact
-  listingId={product.id}
-  productName={product.name}
-  showFallback={!whatsappUrl && !phoneUrl}
-/>
-                    </div>
-                    )
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="location-card">
-                        <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
-                          Seller's area
-                        </p>
-                        <p className="mt-2 text-base font-extrabold text-[#43332A]">
-                          {product.exactLocation}, Durgapur
-                        </p>
-                      </div>
-
-                      <div className="location-card">
-                        <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
-                          Meetup arrangements
-                        </p>
-                        <p className="mt-3 text-sm font-extrabold leading-6 text-[#43332A]">
-                          {product.meetupPolicy === "selected_areas"
-                            ? meetupAreaNames.length
-                              ? meetupAreaNames.join(", ")
-                              : "Ask the seller about available meetup areas"
-                            : "Pickup in seller's area"}
-                        </p>
-                        <p className="mt-4 text-sm text-[#7D675B]">
-                          {product.status === "sold"
-                            ? "This listing has been sold, so meetup arrangements are no longer available."
-                            : product.travelNote ||
-                              (product.meetupPolicy === "selected_areas"
-                                ? "Contact the seller to confirm a meetup place and time."
-                                : "Contact the seller to arrange pickup.")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {relatedProducts.length > 0 && (
-          <section className="mt-10">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-black">You may also like</h2>
-                <p className="mt-1 text-sm text-[#8B7568]">
-                  Similar local finds from the marketplace
-                </p>
-              </div>
-              <Link to="/marketplace" className="white-button hidden sm:inline-flex">
-                Browse more
-              </Link>
+              )}
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {relatedProducts.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/product/${item.id}`}
-                  className="related-card text-inherit no-underline"
-                >
-                  <div className="related-image">
-                    {item.image ? (
-                      <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <ImagePlaceholder category={item.category} small />
+            <div className="product-info-shell">
+              <div className="rounded-[32px] bg-white p-6 shadow-[10px_15px_35px_#ecd6c7] md:p-8">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="product-page-badge">{product.category}</span>
+                  <span className="text-sm font-semibold text-[#9D8579]">
+                    Posted {product.posted}
+                  </span>
+                </div>
+
+                <h1 className="mt-5 text-3xl font-black leading-tight md:text-5xl">
+                  {product.name}
+                </h1>
+
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p className="text-4xl font-black tracking-tight text-[#F4773D] md:text-5xl">
+                      ₹{product.price.toLocaleString("en-IN")}
+                    </p>
+                    {product.condition && (
+                      <p className="mt-2 text-sm font-medium text-[#8A7B70]">
+                        Condition: <span className="font-semibold text-[#594C43]">{product.condition}</span>
+                      </p>
                     )}
                   </div>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="product-category">{item.category}</span>
-                      <span className="text-xs text-[#A48D80]">{item.posted}</span>
+
+                  <div className="flex items-center gap-3">
+                    <Link
+                      to={`/u/${product.username}`}
+                      aria-label={`View ${sellerLabel}'s profile`}
+                      className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#F4C6A9] bg-[#FFE6D4] text-lg font-black text-[#D9733D] transition hover:scale-105"
+                    >
+                      {product.sellerAvatar ? (
+                        <img
+                          src={product.sellerAvatar}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        (product.sellerName || "D").charAt(0).toUpperCase()
+                      )}
+                    </Link>
+
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-[#9D8579]">
+                        Listed by
+                      </p>
+
+                      <Link
+                        to={`/u/${product.username}`}
+                        className="mt-1 block text-sm font-black text-[#342720] no-underline transition hover:text-[#F4773D]"
+                      >
+                        {sellerLabel}
+                      </Link>
                     </div>
-                    <h3 className="mt-3 text-lg font-black leading-snug">{item.name}</h3>
-                    <p className="mt-2 text-2xl font-black text-[#F4773D]">
-                      ₹{item.price.toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <div className="meta-clay">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
+                      Location
                     </p>
-                    <p className="mt-2 text-sm font-semibold text-[#7C6559]">
-                      📍 {item.location}
+                    <p className="mt-1 text-sm font-extrabold text-[#46342A]">
+                      📍 {product.location}, Durgapur
                     </p>
                   </div>
-                </Link>
-              ))}
+                  <div className="meta-clay">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
+                      Meetup preference
+                    </p>
+                    <p className="mt-1 text-sm font-extrabold text-[#46342A]">
+                      {meetupSummary}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-7">
+                  <h2 className="text-lg font-black">Product details</h2>
+                  <p className="mt-3 whitespace-pre-line leading-7 text-[#7D675B]">
+                    {product.description || "The seller hasn't added a description yet."}
+                  </p>
+                </div>
+                <ListingManagement
+                  listingId={product.id}
+                  status={product.status}
+                  onSold={() =>
+                    setProduct((current) =>
+                      current ? { ...current, status: "sold" } : current
+                    )
+                  }
+                />
+                <div className="mt-8">
+                  <div className="tab-row">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("contact")}
+                      className={`product-tab ${activeTab === "contact" ? "active" : ""}`}
+                    >
+                      {product.status === "sold" ? "Availability" : "Contact Owner"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("location")}
+                      className={`product-tab ${activeTab === "location" ? "active" : ""}`}
+                    >
+                      Location & Meetup
+                    </button>
+                  </div>
+
+                  <div className="tab-panel mt-5">
+                    {activeTab === "contact" ? (
+                      product.status === "sold" ? (
+                        <div role="status" className="rounded-[22px] border border-[#E8DCCF] bg-[#FFF6F0] px-5 py-8 text-center sm:px-8">
+                          <h3 className="text-xl font-black text-[#30392D]">This item is no longer available</h3>
+                          <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-6 text-[#85776C]">
+                            This listing has been sold. Contact options are no longer available for this item.
+                          </p>
+                          <Link
+                            to="/marketplace"
+                            className="mt-6 inline-flex rounded-full bg-[#30392D] px-6 py-3 text-sm font-black text-white no-underline transition hover:bg-[#465241]"
+                          >
+                            Browse other finds ↗
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="rounded-[22px] bg-[#FFF6F0] p-4">
+                            <p className="text-sm font-bold text-[#9C7A66]">
+                              Connect with the seller directly
+                            </p>
+                            <p className="mt-1 text-sm text-[#7D675B]">
+                              Choose a contact method to discuss availability, condition, or meetup timing.
+                            </p>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {whatsappUrl && (
+                              <a
+                                href={whatsappUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="contact-action whatsapp"
+                              >
+                                <span className="text-xl">💬</span>
+                                <div>
+                                  <p className="font-extrabold">WhatsApp</p>
+                                  <p className="text-xs text-[#6F655F]">Message seller</p>
+                                </div>
+                              </a>
+                            )}
+
+                            {phoneUrl && (
+                              <a href={phoneUrl} className="contact-action">
+                                <span className="text-xl">📞</span>
+                                <div>
+                                  <p className="font-extrabold">Call Owner</p>
+                                  <p className="text-xs text-[#6F655F]">{product.phone}</p>
+                                </div>
+                              </a>
+                            )}
+                          </div>
+
+                          <EmailContact
+                            listingId={product.id}
+                            productName={product.name}
+                            showFallback={!whatsappUrl && !phoneUrl}
+                          />
+                        </div>
+                      )
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="location-card">
+                          <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
+                            Seller's area
+                          </p>
+                          <p className="mt-2 text-base font-extrabold text-[#43332A]">
+                            {product.exactLocation}, Durgapur
+                          </p>
+                        </div>
+
+                        <div className="location-card">
+                          <p className="text-xs font-bold uppercase tracking-wider text-[#A68573]">
+                            Meetup arrangements
+                          </p>
+                          <p className="mt-3 text-sm font-extrabold leading-6 text-[#43332A]">
+                            {product.meetupPolicy === "selected_areas"
+                              ? meetupAreaNames.length
+                                ? meetupAreaNames.join(", ")
+                                : "Ask the seller about available meetup areas"
+                              : "Pickup in seller's area"}
+                          </p>
+                          <p className="mt-4 text-sm text-[#7D675B]">
+                            {product.status === "sold"
+                              ? "This listing has been sold, so meetup arrangements are no longer available."
+                              : product.travelNote ||
+                                (product.meetupPolicy === "selected_areas"
+                                  ? "Contact the seller to confirm a meetup place and time."
+                                  : "Contact the seller to arrange pickup.")}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
-        )}
-      </div>
 
-      <AuthPrompt
-        open={authPromptOpen}
-        onClose={() => setAuthPromptOpen(false)}
-        action="favorite"
-        returnTo={`/product/${product.id}?save=1`}
-      />
-    </main>
+          {relatedProducts.length > 0 && (
+            <section className="mt-10">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-black">You may also like</h2>
+                  <p className="mt-1 text-sm text-[#8B7568]">
+                    Similar local finds from the marketplace
+                  </p>
+                </div>
+                <Link to="/marketplace" className="white-button hidden sm:inline-flex">
+                  Browse more
+                </Link>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {relatedProducts.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/product/${item.id}`}
+                    className="related-card text-inherit no-underline"
+                  >
+                    <div className="related-image">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <ImagePlaceholder category={item.category} small />
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="product-category">{item.category}</span>
+                        <span className="text-xs text-[#A48D80]">{item.posted}</span>
+                      </div>
+                      <h3 className="mt-3 text-lg font-black leading-snug">{item.name}</h3>
+                      <p className="mt-3 text-2xl font-black text-[#F4773D]">
+                        ₹{item.price.toLocaleString("en-IN")}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[#7C6559]">
+                        📍 {item.location}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <AuthPrompt
+          open={authPromptOpen}
+          onClose={() => setAuthPromptOpen(false)}
+          action="favorite"
+          returnTo={`/product/${product.id}?save=1`}
+        />
+      </main>
     </>
   );
 }

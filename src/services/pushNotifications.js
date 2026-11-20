@@ -1,77 +1,158 @@
 import { supabase } from '../lib/supabase.js';
 
 function base64UrlToUint8Array(base64Url) {
-  const padded = base64Url.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(base64Url.length / 4) * 4, '=');
+  const normalized = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
   const raw = atob(padded);
   return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
-/** Safe to call while rendering: never triggers a permission prompt. */
-export function getPushSupport() {
-  return {
-    supported: typeof window !== 'undefined' &&
-      window.isSecureContext &&
-      'serviceWorker' in navigator &&
-      'PushManager' in window &&
-      'Notification' in window,
-    permission: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
-  };
+function getPublicKeyBytes() {
+  const key = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim();
+  if (!key) throw new Error('Notifications are not configured on this website yet. Please try later.');
+  try {
+    const bytes = base64UrlToUint8Array(key);
+    if (bytes.length !== 65 || bytes[0] !== 4) throw new Error('Unexpected VAPID public key format');
+    return bytes;
+  } catch {
+    throw new Error('Notification setup needs attention. Please try later.');
+  }
 }
 
-/** Only call in direct response to the branded Enable notifications button. */
+/** Read-only capability check: never requests browser permission. */
+export function getPushSupport() {
+  const browser = typeof window !== 'undefined' && typeof navigator !== 'undefined';
+  const secured = browser && window.isSecureContext;
+  const supported = Boolean(
+    secured && 'serviceWorker' in navigator &&
+    'PushManager' in window && 'Notification' in window
+  );
+  const permission = browser && 'Notification' in window
+    ? Notification.permission : 'unsupported';
+  const configured = Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim());
+  return { supported, permission, configured };
+}
+
+function applicationKeysMatch(subscription, publicKeyBytes) {
+  const stored = subscription.options?.applicationServerKey;
+  if (!stored) return true; // Older browsers may not expose this property.
+  const existing = new Uint8Array(stored);
+  return existing.length === publicKeyBytes.length &&
+    existing.every((byte, index) => byte === publicKeyBytes[index]);
+}
+
+/** Run only when the signed-in user taps Enable notifications. */
 export async function enablePushForCurrentUser() {
-  if (!getPushSupport().supported) throw new Error('Push notifications are not supported on this device/browser.');
-  const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-  if (!publicKey) throw new Error('Missing VITE_VAPID_PUBLIC_KEY; finish push setup first.');
-
-  // Call requestPermission before the first await, preserving the user gesture
-  // needed on browsers such as Safari. The button is shown only to signed-in users.
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return { enabled: false, permission };
-
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData?.user) throw new Error('Please sign in first.');
-
-  const registration = await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
-  await navigator.serviceWorker.ready;
-  const existing = await registration.pushManager.getSubscription();
-  const subscription = existing || await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: base64UrlToUint8Array(publicKey),
-  });
-  const record = subscription.toJSON();
-  if (!record.endpoint || !record.keys?.p256dh || !record.keys?.auth) {
-    throw new Error('Browser returned an incomplete push subscription.');
+  const support = getPushSupport();
+  if (!support.supported) {
+    return { enabled: false, permission: support.permission, reason: 'unsupported' };
+  }
+  if (support.permission === 'denied') {
+    return { enabled: false, permission: 'denied', reason: 'blocked' };
+  }
+  if (!navigator.onLine) {
+    throw new Error('You appear to be offline. Connect to the internet and try again.');
   }
 
-  const { error: dbError } = await supabase.from('push_subscriptions').upsert({
-    user_id: authData.user.id,
-    endpoint: record.endpoint,
-    p256dh_key: record.keys.p256dh,
-    auth_key: record.keys.auth,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'endpoint' });
+  // Validate configuration BEFORE asking the browser for permission.
+  const publicKeyBytes = getPublicKeyBytes();
 
-  if (dbError) throw dbError;
+  // IMPORTANT: If permission has already been granted, do not ask again.
+  // Otherwise request permission before the first await to preserve the click gesture.
+  let permission = support.permission;
+  if (permission !== 'granted') {
+    try {
+      permission = await Notification.requestPermission();
+    } catch {
+      permission = Notification.permission;
+    }
+  }
+  if (permission !== 'granted') {
+    return {
+      enabled: false,
+      permission,
+      reason: permission === 'denied' ? 'blocked' : 'dismissed',
+    };
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData?.user) {
+    throw new Error('Your session expired. Sign in again to enable notifications.');
+  }
+
+  let registration;
+  let subscription;
+  try {
+    registration = await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
+    // Registration must reach an active state before subscribing.
+    await navigator.serviceWorker.ready;
+    subscription = await registration.pushManager.getSubscription();
+    if (subscription && !applicationKeysMatch(subscription, publicKeyBytes)) {
+      // Example: public VAPID key changed between releases.
+      await subscription.unsubscribe();
+      subscription = null;
+    }
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKeyBytes,
+      });
+    }
+  } catch (error) {
+    console.warn('DGP Finds push browser registration failed', error);
+    throw new Error('Chrome could not register this device. Check notification settings, then try again.');
+  }
+
+  const record = subscription.toJSON();
+  if (!record.endpoint || !record.keys?.p256dh || !record.keys?.auth) {
+    throw new Error('Your browser did not provide a complete subscription. Please try again.');
+  }
+
+  // Server-side RPC verifies auth.uid() and safely reassigns an endpoint if
+  // the same browser was previously used with a different DGP Finds account.
+  const { error: dbError } = await supabase.rpc('register_push_subscription', {
+    p_endpoint: record.endpoint,
+    p_p256dh_key: record.keys.p256dh,
+    p_auth_key: record.keys.auth,
+  });
+  if (dbError) {
+    console.warn('DGP Finds push database registration failed', dbError.code);
+    throw new Error('Could not save this device for notifications. Check your connection and try again.');
+  }
+
   return { enabled: true, permission: 'granted' };
 }
 
-/** Call from a user action when opting out on this browser. */
+/** Run BEFORE calling supabase.auth.signOut if available. */
 export async function disablePushForCurrentUser() {
   if (!getPushSupport().supported) return false;
   const registration = await navigator.serviceWorker.getRegistration('/');
   if (!registration) return false;
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return false;
-  const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+  const { error } = await supabase.from('push_subscriptions')
+    .delete().eq('endpoint', subscription.endpoint);
   if (error) throw error;
   await subscription.unsubscribe();
   return true;
 }
 
-/** Owner-only manual test; no seller or moderator event is wired yet. */
+/** Fallback for SIGNED_OUT events: stop device delivery even if session is gone.
+ * The server removes the expired DB endpoint when its push service returns 404/410. */
+export async function stopBrowserPushAfterSignOut() {
+  if (!getPushSupport().supported) return false;
+  const registration = await navigator.serviceWorker.getRegistration('/');
+  const subscription = await registration?.pushManager.getSubscription();
+  if (!subscription) return false;
+  await subscription.unsubscribe();
+  return true;
+}
+
+/** Existing owner-only manual test utility, unchanged. */
 export async function sendTestPushToMyDevices() {
-  const { data, error } = await supabase.functions.invoke('send-test-push', { body: { action: 'test-self' } });
+  const { data, error } = await supabase.functions.invoke('send-test-push', {
+    body: { action: 'test-self' },
+  });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
   return data;
