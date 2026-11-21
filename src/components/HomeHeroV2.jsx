@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "./HomeHeroV2.css";
 
@@ -73,6 +73,7 @@ function SpotlightCard({ product, pending }) {
 
 export default function HomeHeroV2({ products, productsLoading, onSell }) {
   const [active, setActive] = useState(0);
+  const touchStart = useRef(null);
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -90,18 +91,42 @@ export default function HomeHeroV2({ products, productsLoading, onSell }) {
 
   useEffect(() => {
     if (paused || reduceMotion) return;
-    const timer = window.setInterval(() => setActive((index) => (index + 1) % slides.length), 6800);
+    const timer = window.setInterval(() => setActive((index) => (index + 1) % slides.length), 4500);
     return () => window.clearInterval(timer);
   }, [paused, reduceMotion]);
 
   const slide = slides[active];
   const product = products[active] ?? null;
   const go = (step) => setActive((index) => (index + step + slides.length) % slides.length);
+  const handleTouchStart = (event) => {
+  const touch = event.touches[0];
+  touchStart.current = {
+    x: touch.clientX,
+    y: touch.clientY,
+  };
+};
+
+const handleTouchEnd = (event) => {
+  if (!touchStart.current) return;
+
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - touchStart.current.x;
+  const deltaY = touch.clientY - touchStart.current.y;
+
+  touchStart.current = null;
+
+  if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+    go(deltaX > 0 ? -1 : 1);
+  }
+};
   const jump = () => document.getElementById("discover")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
 
   return (
     <section
-      className="relative isolate overflow-hidden border-b border-[#EFDCC7] bg-[#FFF3E3]"
+  className="relative isolate overflow-hidden border-b border-[#EFDCC7] bg-[#FFF3E3] touch-pan-y"
+  onTouchStart={handleTouchStart}
+  onTouchEnd={handleTouchEnd}
+  onTouchCancel={() => { touchStart.current = null; }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
