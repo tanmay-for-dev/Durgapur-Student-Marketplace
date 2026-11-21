@@ -91,7 +91,7 @@ export default function HomeHeroV2({ products, productsLoading, onSell }) {
 
   useEffect(() => {
     if (paused || reduceMotion) return;
-    const timer = window.setInterval(() => setActive((index) => (index + 1) % slides.length), 4500);
+    const timer = window.setInterval(() => setActive((index) => (index + 1) % slides.length), 5500);
     return () => window.clearInterval(timer);
   }, [paused, reduceMotion]);
 
